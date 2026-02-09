@@ -1,0 +1,34 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches:
+      - main  # déclenche sur push vers main
+  pull_request:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service:
+          - src/services/ingestion
+          - src/services/prediction
+          - src/services/routing
+          - src/frontend
+
+    steps:
+      # 1️⃣ Checkout le code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Login GitHub Container Registry
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}

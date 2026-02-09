@@ -1,25 +1,97 @@
-# Convention de Nomage
+# Conventions
 
-## General
+This document outlines the coventions followed during this project and throughout the codebase to ensure consistency and maintainability.
 
-### Fichiers
+## Files and Directories
 
-- Les fichiers doivent être nommés avec la regle de nommage `kebab-case`
+### Folder Naming Conventions
 
-### Dossiers
+> [!TIP]
+>
+> - `Good Practice`: Use concise and descriptive names with `snake_case` for folders.
+>
+> ```md
+> documents
+> data_models
+> ```
 
-- Les dossiers doivent être nommés avec la regle de nommage `kebab-case`
+<br>
 
-## Code
+> [!Caution]
+>
+> - `Bad Practice`: Avoid using spaces, special characters, or overly long names for folders.
+>
+> ```md
+> My Documents
+> data models
+> ```
+
+### File Naming Conventions
+
+> [!TIP]
+>
+> - `Good Practice`: Use `kebab-case` for files with clear and descriptive names.
+>
+> ```md
+> user-profile.json
+> data-model.py
+> ```
+
+<br>
+
+> [!Caution]
+>
+> - `Bad Practice`: Avoid using camelCase, spaces, or special characters in file names.
+>
+> ```md
+> a.json
+> dataModel.py
+> ```
+
+<br>
+
+## Coding Standards
 
 ### Variables
 
-- Les variables doivent être nommées avec la regle de nommage `camelCase`
+> [!Tip]
+>
+> - `Good Practice`: Use descriptive names in snake_case for variables.
+>
+> ```python
+> user_count = 10
+> usernames = ["alice", "bob", "charlie"]
+>```
 
-### Fontions
+<br>
 
-- Les fonctions doivent être nommées avec la regle de nommage `camelCase`
+> [!Caution]
+>
+> - `Bad Practice`: Avoid using single-letter names or ambiguous terms for variables.
+>
+> ```python
+> a = 10
+> list = ["alice", "bob", "charlie"]
+> ```
 
-### Constantes
+### Functions
 
-- Les constantes doivent être nommées avec la regle de nommage `UPPER_SNAKE_CASE`
+> [!Tip]
+>
+> - `Good Practice`: Use descriptive names in snake_case for functions.
+>
+> ```python
+> get_user_count()
+> format_data()
+> ```
+
+<br>
+
+> [!Caution]
+>
+> - `Bad Practice`: Avoid using generic names or ambiguous terms for functions.
+>
+> ```python
+> func()
+> array()
+>```

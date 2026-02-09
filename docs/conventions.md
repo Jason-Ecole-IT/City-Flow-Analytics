@@ -8,11 +8,11 @@ This document outlines the coventions followed during this project and throughou
 
 > [!TIP]
 >
-> - `Good Practice`: Use concise and descriptive names with PascalCase for folders.
+> - `Good Practice`: Use concise and descriptive names with `snake_case` for folders.
 >
 > ```md
-> Documents
-> DataModels
+> documents
+> data_models
 > ```
 
 <br>
@@ -30,11 +30,11 @@ This document outlines the coventions followed during this project and throughou
 
 > [!TIP]
 >
-> - `Good Practice`: Use snake_case for files with clear and descriptive names.
+> - `Good Practice`: Use `kebab-case` for files with clear and descriptive names.
 >
 > ```md
-> user_profile.json
-> data_model.py
+> user-profile.json
+> data-model.py
 > ```
 
 <br>
@@ -49,26 +49,6 @@ This document outlines the coventions followed during this project and throughou
 > ```
 
 <br>
-
-> [!Caution]
->
-> - `Bad Practice`: Avoid generic names or using names with confusing terms.
->
-> ```md
-> query_1
-> query_2
-> ```
-
-<br>
-
-> [!Caution]
->
-> - `Bad Practice`: Avoid generic names or using names with confusing terms.
->
-> ```md
-> ALERT 1
-> alert cpu
->```
 
 ## Coding Standards
 

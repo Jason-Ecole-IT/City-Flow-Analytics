@@ -30,7 +30,7 @@ flowchart TD
     Predict --> Routing["Routing Service (Go)"]
     Routing --> Frontend
 
-    classDef service fill:#f9f,stroke:#333,stroke-width:1px;
+    classDef service fill:#f9f,stroke:#333,stroke-width:1px,color:#333;
     class Ingest,Predict,Routing service;
 ````
 
@@ -95,7 +95,7 @@ flowchart LR
     Predict --> Routing
     Routing --> Frontend
 
-    classDef service fill:#f9f,stroke:#333,stroke-width:1px;
+    classDef service fill:#f9f,stroke:#333,stroke-width:1px,color:#333;
     class Ingest,Predict,Routing service;
 ```
 
@@ -104,20 +104,20 @@ flowchart LR
 ```mermaid
 flowchart LR
     subgraph SG_IoT ["IoT Simulator"]
-        IoT_Node["IoT Simulator\n(Container: simulator)"]
+        IoT_Node["IoT Simulator <br>(Container: simulator)"]
     end
 
     subgraph SG_Microservices ["Microservices"]
-        Ingest["Ingestion Service\n(Container: ingestion)\nPort: 8080"]
-        Predict["Prediction Service\n(Container: prediction)\nPort: 8081"]
-        Routing["Routing Service\n(Container: routing)\nPort: 8082"]
+        Ingest["Ingestion Service <br>(Container: ingestion) <br>Port: 8080"]
+        Predict["Prediction Service <br>(Container: prediction) <br>Port: 8081"]
+        Routing["Routing Service <br>(Container: routing) <br>Port: 8082"]
     end
 
     subgraph SG_Frontend ["Frontend"]
-        Frontend["Frontend Dashboard\n(Container: frontend)\nPort: 4000"]
+        Frontend["Frontend Dashboard <br>(Container: frontend) <br>Port: 4000"]
     end
 
-    DB_Node["TimescaleDB\n(Container: timescaledb)\nPort: 5432"]
+    DB_Node["TimescaleDB <br>(Container: timescaledb) <br>Port: 5432"]
 
     %% Connexions
     IoT_Node --> Ingest
@@ -128,9 +128,9 @@ flowchart LR
     Routing --> Frontend
 
     %% Styles
-    classDef service fill:#f9f,stroke:#333,stroke-width:1px;
+    classDef service fill:#f9f,stroke:#333,stroke-width:1px,color:#333;
     class Ingest,Predict,Routing service;
-    classDef frontend fill:#9f9,stroke:#333,stroke-width:1px;
+    classDef frontend fill:#9f9,stroke:#333,stroke-width:1px,color:#333;
     class Frontend frontend;
     class IoT_Node fill:#ccf,stroke:#333,stroke-width:1px;
     class DB_Node fill:#ffc,stroke:#333,stroke-width:1px;

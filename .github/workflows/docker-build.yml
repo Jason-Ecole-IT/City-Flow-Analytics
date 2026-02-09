@@ -18,8 +18,8 @@ jobs:
       matrix:
         service:
           - src/services/ingestion
-          - src/services/prediction
-          - src/services/routing
+#          - src/services/prediction
+#          - src/services/routing
           - src/frontend
 
     steps:

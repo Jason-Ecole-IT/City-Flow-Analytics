@@ -1,0 +1,16 @@
+{
+  "name": "cityflow-frontend",
+  "version": "0.1.0",
+  "description": "Dashboard temps réel CityFlow Analytics",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node index.js",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.13.0"
+  },
+  "author": "Alexis",
+  "license": "MIT"
+}

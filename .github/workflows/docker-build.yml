@@ -3,7 +3,7 @@ name: Build and Push Docker Images
 on:
   push:
     branches:
-      - main  # déclenche sur push vers main
+      - dev  # déclenche sur push vers dev
   pull_request:
 
 env:
@@ -18,8 +18,8 @@ jobs:
       matrix:
         service:
           - src/services/ingestion
-          - src/services/prediction
-          - src/services/routing
+#          - src/services/prediction
+#          - src/services/routing
           - src/frontend
 
     steps:

@@ -1,0 +1,12 @@
+version: "3.8"
+services:
+  ingestion:
+    build: ./src/services/ingestion
+    ports:
+      - "8080:8080"
+  frontend:
+    build: ./src/frontend
+    ports:
+      - "4000:4000"
+  simulator:
+    build: ./src/iot-simulator

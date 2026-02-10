@@ -1,0 +1,50 @@
+name: CD - Deploy Docker Images to VM
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build all Docker images for transfer
+        run: |
+          SERVICES=("src/services/ingestion" "src/frontend" "src/iot-simulator")
+          for SERVICE in "${SERVICES[@]}"; do
+            IMAGE_NAME=$(basename $SERVICE)
+            docker build -t $IMAGE_NAME:latest $SERVICE
+            docker save -o $IMAGE_NAME.tar $IMAGE_NAME:latest
+          done
+
+      - name: Copy Docker images to VM
+        uses: appleboy/scp-action@v0.1.5
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          source: |
+            ingestion.tar
+            frontend.tar
+            iot-simulator.tar
+          target: ~/cityflow
+
+      - name: Load Docker images and deploy via docker-compose
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            cd ~/cityflow
+            for IMAGE in ingestion frontend iot-simulator; do
+              docker load -i $IMAGE.tar
+              rm $IMAGE.tar
+            done
+            docker-compose down
+            docker-compose up -d

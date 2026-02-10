@@ -71,3 +71,21 @@ Le diagramme d'architecture de notre système est dans le fichier [project-archi
 Nous avons utilisé des Raspberry Pi virtuels pour simuler les capteurs de traffic.Chaque capteur collecte le nombre de vehicules passant par une route spécifique et envoie ces données via MQTT a un broker central, puis le backend récupère ces données pour les analyser et calculer les statistiques de traffic.
 
 ### Backend
+
+Le backend est développé en Go et utilise MQTT pour recevoir les données des capteurs. Il calcule les statistiques de traffic et propose des chemins alternatifs en fonction des données reçues. Il expose une API pour que le frontend puisse récupérer les données de traffic en temps réel et les recommandations de chemins alternatifs. Il stocke également les données de traffic et les statistiques calculées dans une base de données TimeScaleDB pour permettre des analyses historiques et des prédictions de traffic.
+
+### Frontend
+
+Le frontend est développé en NodeJS et utilise D3.js pour visualiser les données de traffic en temps réel. Il affiche les routes principales, secondaires et les zones de congestion avec des couleurs indiquant le niveau de traffic. Sur le panneau latéral, il affiche les statistiques de traffic en temps réel et les recommandations de chemins alternatifs.
+
+### CI/CD
+
+Nous avons mis en place une pipeline CI/CD avec GitHub Actions pour automatiser les tests et le déploiement de notre application. Nous utilisons Docker pour containeriser notre application et Kubernetes pour orchestrer le déploiement.
+
+### Monitoring
+
+Nous utilisons Grafana et Prometheus pour surveiller les performances de notre système et détecter des anomalies sur nos capteurs. Des dashboards Grafana sont configuré pour visualiser les métriques de performance et des alertes ont été mise en place pour nous notifier en cas de problèmes.
+
+### Database
+
+Nous utilison TimeScaleDB pour stocker les données de traffic et les statistiques calculées afin de réaliser des prédictions de traffic et des analyses historiques.

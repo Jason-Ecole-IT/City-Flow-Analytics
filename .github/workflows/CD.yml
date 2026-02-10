@@ -13,14 +13,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build all Docker images for transfer
+      - name: Build Docker images and save to tar
         run: |
+          mkdir -p docker_images
           SERVICES=("src/services/ingestion" "src/frontend" "src/iot-simulator")
           for SERVICE in "${SERVICES[@]}"; do
             IMAGE_NAME=$(basename $SERVICE)
+            echo "Building $IMAGE_NAME..."
             docker build -t $IMAGE_NAME:latest $SERVICE
-            docker save -o $IMAGE_NAME.tar $IMAGE_NAME:latest
+            docker save -o docker_images/$IMAGE_NAME.tar $IMAGE_NAME:latest
           done
+
+      - name: List tar files
+        run: ls -lh docker_images/
 
       - name: Copy Docker images to VM
         uses: appleboy/scp-action@v0.1.5
@@ -28,13 +33,10 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
-          source: |
-            ingestion.tar
-            frontend.tar
-            iot-simulator.tar
-          target: ~/cityflow
+          source: docker_images/*.tar
+          target: ~/cityflow/
 
-      - name: Load Docker images and deploy via docker-compose
+      - name: Load Docker images and deploy
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VM_HOST }}
@@ -42,9 +44,9 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
             cd ~/cityflow
-            for IMAGE in ingestion frontend iot-simulator; do
-              docker load -i $IMAGE.tar
-              rm $IMAGE.tar
+            for IMAGE in docker_images/*.tar; do
+              docker load -i $IMAGE
             done
+            rm docker_images/*.tar || true
             docker-compose down
             docker-compose up -d

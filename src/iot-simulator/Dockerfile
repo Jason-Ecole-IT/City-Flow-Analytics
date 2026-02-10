@@ -1,4 +1,12 @@
-FROM node:20-alpine
+FROM python:3.11-slim
+
 WORKDIR /app
-COPY . .
-CMD ["node", "simulator.js"]
+
+# Installer la librairie MQTT
+RUN pip install paho-mqtt
+
+# Copier le script du capteur dans le conteneur
+COPY sensor.py .
+
+# Lancer le capteur
+CMD ["python", "sensor.py"]

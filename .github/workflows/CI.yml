@@ -1,0 +1,27 @@
+name: CI - Build All Docker Images
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+
+jobs:
+  build_all:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker images
+        run: |
+          SERVICES=("src/services/ingestion" "src/frontend" "src/iot-simulator")
+          for SERVICE in "${SERVICES[@]}"; do
+            IMAGE_NAME=$(basename $SERVICE)
+            echo "Building $IMAGE_NAME..."
+            docker build -t $IMAGE_NAME:latest $SERVICE
+          done
+
+      - name: List Docker images
+        run: docker images

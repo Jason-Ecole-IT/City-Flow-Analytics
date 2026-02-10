@@ -1,4 +1,4 @@
-name: CD - Deploy Docker Images to VM
+name: CD - Deploy Docker Images to VM (Single Archive)
 
 on:
   push:
@@ -13,27 +13,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build Docker images and save to tar
+      - name: Build Docker images and archive
         run: |
           mkdir -p docker_images
           SERVICES=("src/services/ingestion" "src/frontend" "src/iot-simulator")
           for SERVICE in "${SERVICES[@]}"; do
             IMAGE_NAME=$(basename $SERVICE)
-            echo "Building $IMAGE_NAME..."
             docker build -t $IMAGE_NAME:latest $SERVICE
             docker save -o docker_images/$IMAGE_NAME.tar $IMAGE_NAME:latest
           done
+          tar czf docker_images.tar.gz -C docker_images .
 
-      - name: List tar files
-        run: ls -lh docker_images/
+      - name: Fix permissions for archive
+        run: chmod 777 docker_images.tar.gz
 
-      - name: Copy Docker images to VM
+      - name: Copy Docker images archive to VM
         uses: appleboy/scp-action@v0.1.5
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
-          source: docker_images/*.tar
+          source: docker_images.tar.gz
           target: ~/cityflow/
 
       - name: Load Docker images and deploy
@@ -44,9 +44,11 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
             cd ~/cityflow
+            mkdir -p docker_images
+            tar xzf docker_images.tar.gz -C docker_images
             for IMAGE in docker_images/*.tar; do
               docker load -i $IMAGE
             done
-            rm docker_images/*.tar || true
+            rm -rf docker_images docker_images.tar.gz
             docker-compose down
             docker-compose up -d

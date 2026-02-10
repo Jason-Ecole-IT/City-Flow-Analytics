@@ -9,7 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         service:
@@ -19,7 +18,6 @@ jobs:
           # - src/services/routing
 
     steps:
-      # 1️⃣ Checkout le code
       - name: Checkout repository
         uses: actions/checkout@v4
 

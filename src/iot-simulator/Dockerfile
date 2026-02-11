@@ -2,12 +2,15 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Installer la librairie MQTT
-RUN pip install paho-mqtt psycopg2-binary
+# Installation des dépendances Python
+RUN pip install --no-cache-dir \
+    paho-mqtt \
+    psycopg2-binary \
+    python-dotenv
 
-# Copier le script du capteur dans le conteneur
-COPY sensor.py .
+# Copie des scripts dans l'image
 COPY subscriber.py .
+COPY sensor.py .
 
-# Lancer le capteur
-CMD ["python", "subscriber.py", "&&", "python", "sensor.py"]
+# Comportement par défaut : lancer le subscriber
+CMD ["python", "subscriber.py"]

@@ -1,71 +1,141 @@
 import os
 import json
-import time
+from datetime import datetime
+
 import psycopg2
 import paho.mqtt.client as mqtt
+from dotenv import load_dotenv
 
-# MQTT
-BROKER = os.getenv("MQTT_BROKER")
-USERNAME = os.getenv("MQTT_USER")
-PASSWORD = os.getenv("MQTT_PASS")
+# -------------------------------------------------------------------
+# Chargement du fichier .env
+# -------------------------------------------------------------------
+ENV_FILE = os.getenv("ENV_FILE", ".env")
+load_dotenv(ENV_FILE)
+print(f"[BOOT] Loaded environment from {ENV_FILE}")
 
-# Database
+# -------------------------------------------------------------------
+# Configuration MQTT (depuis .env)
+# -------------------------------------------------------------------
+MQTT_BROKER = os.getenv("MQTT_BROKER", "host.docker.internal")
+MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
+MQTT_USER = os.getenv("MQTT_USER")
+MQTT_PASS = os.getenv("MQTT_PASS")
+
+# -------------------------------------------------------------------
+# Configuration base de données (depuis .env)
+# -------------------------------------------------------------------
 DB_HOST = os.getenv("DB_HOST")
-DB_PORT = int(os.getenv("DB_PORT", 5432))
+DB_PORT = int(os.getenv("DB_PORT", "5432"))
 DB_USER = os.getenv("DB_USER")
 DB_PASS = os.getenv("DB_PASS")
-DB_NAME = os.getenv("DB_NAME")
+DB_NAME = os.getenv("DB_NAME", "iot")
 
-# Connexion à la DB
+missing = [
+    name
+    for name, value in [
+        ("DB_HOST", DB_HOST),
+        ("DB_USER", DB_USER),
+        ("DB_PASS", DB_PASS),
+    ]
+    if not value
+]
+if missing:
+    raise RuntimeError(
+        f"Missing required environment variables: {', '.join(missing)}"
+    )
+
+print(
+    f"[BOOT] MQTT={MQTT_BROKER}:{MQTT_PORT} | "
+    f"DB={DB_HOST}:{DB_PORT}/{DB_NAME} (user={DB_USER})"
+)
+
+# -------------------------------------------------------------------
+# Connexion à la base + création de la table / hypertable
+# -------------------------------------------------------------------
 conn = psycopg2.connect(
     host=DB_HOST,
     port=DB_PORT,
     user=DB_USER,
     password=DB_PASS,
-    dbname=DB_NAME
+    dbname=DB_NAME,
 )
 cur = conn.cursor()
 
-# Créer la table si elle n'existe pas
-cur.execute("""
-CREATE TABLE IF NOT EXISTS sensor_data (
-    time TIMESTAMPTZ NOT NULL DEFAULT now(),
-    device_id TEXT,
-    sensor TEXT,
-    value DOUBLE PRECISION
-);
-""")
-# Convertir en hypertable TimeScaleDB
-cur.execute("""
-SELECT create_hypertable('sensor_data', 'time', if_not_exists => TRUE);
-""")
-conn.commit()
+cur.execute(
+    """
+    CREATE TABLE IF NOT EXISTS sensor_data (
+        time TIMESTAMPTZ NOT NULL,
+        device_id TEXT,
+        sensor TEXT,
+        value DOUBLE PRECISION
+    );
+"""
+)
 
-# Callback MQTT
+# create_hypertable est spécifique à TimescaleDB
+try:
+    cur.execute(
+        """
+        SELECT create_hypertable('sensor_data', 'time', if_not_exists => TRUE);
+    """
+    )
+except Exception as e:
+    # Si ce n'est pas TimescaleDB, on ne bloque pas le programme
+    print(f"[DB] Warning: could not create hypertable: {e}")
+
+conn.commit()
+print("[DB] Table sensor_data ready")
+
+# -------------------------------------------------------------------
+# Callbacks MQTT
+# -------------------------------------------------------------------
 def on_connect(client, userdata, flags, rc):
-    print("Subscriber connected to broker", rc)
+    print(f"[MQTT] Connected with result code {rc}")
+    # iot/<device_id>/<sensor_type>
     client.subscribe("iot/+/+")
+    print("[MQTT] Subscribed to topic 'iot/+/+'")
+
 
 def on_message(client, userdata, msg):
     try:
         payload = json.loads(msg.payload.decode())
+        print(f"[MQTT] Message received on {msg.topic}: {payload}")
+
+        timestamp = payload.get("timestamp")
+        if timestamp is None:
+            ts = datetime.utcnow()
+        else:
+            ts = datetime.utcfromtimestamp(float(timestamp))
+
         device_id = payload.get("device_id")
         sensor = payload.get("sensor")
         value = payload.get("value")
-        timestamp = payload.get("timestamp")
-        
+
         cur.execute(
-            "INSERT INTO sensor_data (time, device_id, sensor, value) VALUES (to_timestamp(%s), %s, %s, %s)",
-            (timestamp, device_id, sensor, value)
+            """
+            INSERT INTO sensor_data (time, device_id, sensor, value)
+            VALUES (%s, %s, %s, %s)
+        """,
+            (ts, device_id, sensor, value),
         )
         conn.commit()
-        print(f"Inserted {payload}")
+        print(f"[DB] Inserted row for device={device_id}, sensor={sensor}")
     except Exception as e:
-        print("Error:", e)
+        conn.rollback()
+        print(f"[ERROR] Failed to handle message: {e}")
 
+
+# -------------------------------------------------------------------
+# Client MQTT
+# -------------------------------------------------------------------
 client = mqtt.Client()
-client.username_pw_set(USERNAME, PASSWORD)
+
+if MQTT_USER and MQTT_PASS:
+    client.username_pw_set(MQTT_USER, MQTT_PASS)
+
 client.on_connect = on_connect
 client.on_message = on_message
-client.connect(BROKER, 1883, 60)
+
+client.connect(MQTT_BROKER, MQTT_PORT, 60)
+print("[BOOT] MQTT client connected, starting loop...")
 client.loop_forever()

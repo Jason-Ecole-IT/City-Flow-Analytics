@@ -13,23 +13,30 @@ graph TD
         D[Broker MQTT]
         end
     subgraph Data Processing
-        E[Analyse de données]
-        F[Calcul de statistiques]
-        G[Chemin alternatif]
+        E[Subcriber MQTT]
+        F[Analyse de données]
+        G[Calcul de statistiques]
+        H[Chemin alternatif]
+        I[TimeScaleDB]
         end
     subgraph User Interface
-        H[Dashboard Web]
+        J[Dashboard Web]
         end
     
     A --> D
     B --> D
     C --> D
     D --> E
-    E --> F
+    E -- Raw Data --> I
+    I --> F
     F --> G
     F --> H
     G --> H
+    G -- Clean Data --> I
+    G --> J
 ```
+
+> On stock les données traitées dans la base de données afin de pouvoir les utilisé pour les prédictions et les recommandations de chemins alternatifs.
 
 ## Dashboard Mockup
 

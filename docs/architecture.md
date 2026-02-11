@@ -14,7 +14,7 @@ Le projet est organisé en microservices et un frontend, orchestrés via Docker 
 | Prediction | Go | 8081 | Service de prédiction du trafic à 30 min |
 | Routing | Go | 8082 | Service de reroutage intelligent pour éviter embouteillages |
 | Frontend | Node.js / Express | 4000 | Dashboard temps réel, reçoit flux WebSocket |
-| IoT Simulator | Node.js | N/A | Génère des données de trafic simulées pour tests locaux |
+| IoT Simulator | Python | N/A | Génère des données de trafic simulées pour tests locaux |
 | TimescaleDB | Postgres/Timescale | 5432 | Base séries temporelles pour stockage des données trafic |
 
 ---
@@ -27,7 +27,8 @@ flowchart TD
     Ingest --> DB_Node["TimescaleDB (Séries temporelles)"]
     Ingest --> Frontend["Frontend Dashboard (Node.js)"]
     DB_Node --> Predict["Prediction Service (Go)"]
-    Predict --> Routing["Routing Service (Go)"]
+    DB_Node --> Routing["Routing Service (Go)"]
+    Predict --> Frontend
     Routing --> Frontend
 
     classDef service fill:#f9f,stroke:#333,stroke-width:1px,color:#333;

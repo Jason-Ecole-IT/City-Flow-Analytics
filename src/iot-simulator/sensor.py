@@ -6,10 +6,9 @@ import random
 import paho.mqtt.client as mqtt
 
 # -------------------------------------------------------------------
-# Configuration "en dur" avec possibilité d'override par env
-# (les valeurs de la commande docker run sont maintenant ici)
+# Configuration "en dur" avec override possible par env
 # -------------------------------------------------------------------
-MQTT_BROKER = os.getenv("MQTT_BROKER", "host.docker.internal")
+MQTT_BROKER = os.getenv("MQTT_BROKER", "mosquitto")
 MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
 
 DEVICE_ID = os.getenv("DEVICE_ID", "pi_docker_01")

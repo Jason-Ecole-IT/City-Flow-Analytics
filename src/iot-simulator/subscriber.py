@@ -7,24 +7,23 @@ import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 
 # -------------------------------------------------------------------
-# Chargement du fichier .env
+# Chargement éventuel d'un .env local (optionnel)
+# (les variables sont surtout fournies par Docker via env_file)
 # -------------------------------------------------------------------
-ENV_FILE = os.getenv("ENV_FILE", ".env")
-load_dotenv(ENV_FILE)
-print(f"[BOOT] Loaded environment from {ENV_FILE}")
+load_dotenv()
 
 # -------------------------------------------------------------------
-# Configuration MQTT (depuis .env)
+# Configuration MQTT
 # -------------------------------------------------------------------
-MQTT_BROKER = os.getenv("MQTT_BROKER", "host.docker.internal")
+MQTT_BROKER = os.getenv("MQTT_BROKER", "mosquitto")
 MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
 MQTT_USER = os.getenv("MQTT_USER")
 MQTT_PASS = os.getenv("MQTT_PASS")
 
 # -------------------------------------------------------------------
-# Configuration base de données (depuis .env)
+# Configuration base de données
 # -------------------------------------------------------------------
-DB_HOST = os.getenv("DB_HOST")
+DB_HOST = os.getenv("DB_HOST", "timescaledb")
 DB_PORT = int(os.getenv("DB_PORT", "5432"))
 DB_USER = os.getenv("DB_USER")
 DB_PASS = os.getenv("DB_PASS")
@@ -33,7 +32,6 @@ DB_NAME = os.getenv("DB_NAME", "iot")
 missing = [
     name
     for name, value in [
-        ("DB_HOST", DB_HOST),
         ("DB_USER", DB_USER),
         ("DB_PASS", DB_PASS),
     ]
@@ -50,7 +48,7 @@ print(
 )
 
 # -------------------------------------------------------------------
-# Connexion à la base + création de la table / hypertable
+# Connexion à la base + création de la table
 # -------------------------------------------------------------------
 conn = psycopg2.connect(
     host=DB_HOST,
@@ -73,6 +71,7 @@ cur.execute(
 )
 
 # create_hypertable est spécifique à TimescaleDB
+# Si ce n'est pas Timescale, ce bloc échouera mais ce n'est pas bloquant.
 try:
     cur.execute(
         """
@@ -80,8 +79,7 @@ try:
     """
     )
 except Exception as e:
-    # Si ce n'est pas TimescaleDB, on ne bloque pas le programme
-    print(f"[DB] Warning: could not create hypertable: {e}")
+    print(f"[DB] Info: could not create hypertable (probably plain Postgres): {e}")
 
 conn.commit()
 print("[DB] Table sensor_data ready")
@@ -91,9 +89,8 @@ print("[DB] Table sensor_data ready")
 # -------------------------------------------------------------------
 def on_connect(client, userdata, flags, rc):
     print(f"[MQTT] Connected with result code {rc}")
-    # iot/<device_id>/<sensor_type>
     client.subscribe("iot/+/+")
-    print("[MQTT] Subscribed to topic 'iot/+/+'")
+    print("[MQTT] Subscribed to topic 'iot/+/+'" )
 
 
 def on_message(client, userdata, msg):

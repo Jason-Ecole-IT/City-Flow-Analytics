@@ -1,12 +1,53 @@
-version: "3.8"
 services:
   ingestion:
     build: ./src/services/ingestion
     ports:
       - "8080:8080"
+
   frontend:
     build: ./src/frontend
     ports:
       - "4000:4000"
-  simulator:
+
+  mosquitto:
+    build: ./src/mosquitto
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+    restart: unless-stopped
+
+  timescaledb:
+    image: postgres:14
+    container_name: timescaledb
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  subscriber:
     build: ./src/iot-simulator
+    container_name: subscriber
+    env_file:
+      - .env
+    depends_on:
+      - mosquitto
+      - timescaledb
+    restart: unless-stopped
+
+  sensor:
+    build: ./src/iot-simulator
+    container_name: sensor
+    command: ["python", "sensor.py"]
+    env_file:
+      - .env
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
+
+volumes:
+  timescaledb-data:

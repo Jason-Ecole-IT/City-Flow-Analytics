@@ -1,12 +1,15 @@
-const express = require("express");
-const app = express();
-const PORT = process.env.PORT || 4000;
+const express = require('express');
+const path = require('path');
 
-// Route principale
-app.get("/", (req, res) => {
-  res.send("<h1>CityFlow Frontend Dashboard</h1><p>Temps réel à venir...</p>");
-});
+const fetch = (...args) =>
+  import('node-fetch').then(({ default: fetch }) => fetch(...args));
+
+const app = express();
+const PORT = 4000;
+
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
 
 app.listen(PORT, () => {
-  console.log(`Frontend server running at http://localhost:${PORT}`);
+  console.log(`Server running at http://localhost:${PORT}`);
 });

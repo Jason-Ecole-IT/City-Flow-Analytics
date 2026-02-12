@@ -18,13 +18,21 @@ docker-compose up --build
 - Ingestion → port 8080
 - Simulateur → envoie des données de test
 
-## Accès à la DB  
+## Accès à la BD
+
 docker compose exec timescaledb psql -U iot_user -d iot
 
-## Création de la table sensor_data 
+## Visualisation de la BD
+
+`SELECT * FROM sensor_data;`
+
+## Création de la table sensor_data
+
+```SQL
 CREATE TABLE sensor_data (
     time TIMESTAMPTZ NOT NULL,
     device_id TEXT,
     sensor TEXT,
     value DOUBLE PRECISION
 );
+```

@@ -41,7 +41,7 @@ jobs:
           source: docker_images.tar.gz
           target: ~/cityflow/
 
-      - name: Load Docker images and deploy
+      - name: Load Docker images, generate .env and deploy
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VM_HOST }}
@@ -55,5 +55,19 @@ jobs:
               docker load -i $IMAGE
             done
             rm -rf docker_images docker_images.tar.gz
+
+            # --- Génération du .env à partir des secrets GitHub ---
+            cat <<EOF > .env
+            MQTT_BROKER=${{ secrets.MQTT_BROKER }}
+            MQTT_PORT=${{ secrets.MQTT_PORT }}
+
+            DB_HOST=${{ secrets.DB_HOST }}
+            DB_PORT=${{ secrets.DB_PORT }}
+            DB_USER=${{ secrets.DB_USER }}
+            DB_PASS=${{ secrets.DB_PASS }}
+            DB_NAME=${{ secrets.DB_NAME }}
+            EOF
+
+            # --- Déploiement avec docker-compose ---
             docker-compose down
             docker-compose up -d

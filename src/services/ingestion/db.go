@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -114,4 +115,35 @@ func (dbc *DBConnection) SaveProcessedData(deviceID string, ts time.Time, jsonDa
 		return fmt.Errorf("failed to insert processed data for device %s: %w", deviceID, err)
 	}
 	return nil
+}
+
+// GetLatestProcessedPerDevice returns the most recent processed JSON blob per device
+func (dbc *DBConnection) GetLatestProcessedPerDevice() (map[string]json.RawMessage, error) {
+	query := `
+		SELECT DISTINCT ON (device_id) time, device_id, data
+		FROM processed_data
+		ORDER BY device_id, time DESC
+	`
+
+	rows, err := dbc.conn.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query latest processed data: %w", err)
+	}
+	defer rows.Close()
+
+	results := make(map[string]json.RawMessage)
+	for rows.Next() {
+		var ts time.Time
+		var deviceID string
+		var dataBytes []byte
+		if err := rows.Scan(&ts, &deviceID, &dataBytes); err != nil {
+			return nil, fmt.Errorf("failed to scan processed_data row: %w", err)
+		}
+		// store raw JSON as json.RawMessage so it can be marshaled directly
+		results[deviceID] = json.RawMessage(dataBytes)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating processed_data rows: %w", err)
+	}
+	return results, nil
 }

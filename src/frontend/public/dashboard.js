@@ -14,42 +14,59 @@ const sensorValues = {};
 // Helper: fetch processed_data from ingestion API and update `sensorValues`
 async function pollProcessedData() {
   try {
-    const res = await fetch('/api/processed/latest');
-    if (!res.ok) return;
-    const data = await res.json(); // { device_id: <json blob> }
+    // Try several endpoints to support cross-container and proxied setups
+    const endpoints = ['/api/processed/latest', 'http://ingestion:8080/processed/latest', 'http://localhost:8080/processed/latest'];
+    let res = null;
+    let data = null;
+    for (const ep of endpoints) {
+      try {
+        res = await fetch(ep, { cache: 'no-store' });
+        if (res && res.ok) {
+          data = await res.json();
+          break;
+        }
+      } catch (e) {
+        // try next endpoint
+      }
+    }
+    if (!data) return;
 
-    // data[device_id] is a JSON array of sensor readings [{device_id,sensor,value,timestamp}, ...]
-    // Strategy: try to match by device_id === route.name; otherwise search all devices for matching sensor name
+    // `data` is expected as { device_id: [ {device_id,sensor,value,timestamp}, ... ], ... }
     routes.forEach(r => {
       const desiredSensor = r.sensor || r.name;
       let assigned = false;
 
-      // direct device match
-      if (data[r.name]) {
-        try {
-          const readings = JSON.parse(JSON.stringify(data[r.name]));
-          if (Array.isArray(readings) && readings.length > 0) {
-            // find specific sensor
-            const found = readings.find(x => x.sensor === desiredSensor) || readings[0];
-            sensorValues[r.name] = Math.round((found.value || 0));
-            assigned = true;
-          }
-        } catch (e) { /* ignore */ }
+      // If route maps to a specific device (optional), prefer that
+      if (r.device && data[r.device]) {
+        const readings = Array.isArray(data[r.device]) ? data[r.device] : [];
+        if (readings.length > 0) {
+          const found = readings.find(x => x.sensor === desiredSensor) || readings[0];
+          sensorValues[r.name] = Math.round(found.value || 0);
+          assigned = true;
+        }
       }
 
+      // direct device match by route name
+      if (!assigned && data[r.name]) {
+        const readings = Array.isArray(data[r.name]) ? data[r.name] : [];
+        if (readings.length > 0) {
+          const found = readings.find(x => x.sensor === desiredSensor) || readings[0];
+          sensorValues[r.name] = Math.round(found.value || 0);
+          assigned = true;
+        }
+      }
+
+      // search across all devices for matching sensor name
       if (!assigned) {
-        // search across devices for a sensor with matching name
         for (const devId in data) {
-          try {
-            const readings = JSON.parse(JSON.stringify(data[devId]));
-            if (!Array.isArray(readings)) continue;
-            const found = readings.find(x => x.sensor === desiredSensor);
-            if (found) {
-              sensorValues[r.name] = Math.round((found.value || 0));
-              assigned = true;
-              break;
-            }
-          } catch (e) { /* ignore */ }
+          const readings = Array.isArray(data[devId]) ? data[devId] : [];
+          if (!readings.length) continue;
+          const found = readings.find(x => x.sensor === desiredSensor);
+          if (found) {
+            sensorValues[r.name] = Math.round(found.value || 0);
+            assigned = true;
+            break;
+          }
         }
       }
     });
@@ -90,7 +107,6 @@ map.fitBounds(group.getBounds(), { padding: [50, 50], maxZoom: 17 });
 
 // --- Routes ---
 const routes = [
-  { from: "C3", to: "C4", name: "C3 → C4", coords: [[47.846111,1.917106],[47.846244,1.917344]] },
   { from: "C1", to: "C2", name: "Ecole-IT → Parking Tao Flexo", coords: [[47.847079,1.914020],[47.846572,1.915059],[47.846292,1.916141]] },
   { from: "C2", to: "C1", name: "Parking Tao Flexo → Ecole-IT", coords: [[47.846318,1.916160],[47.846608,1.915079],[47.847131,1.914037]] },
   { from: "S1", to: "C2", name: "Les Aulnaies → Parking Tao Flexo", coords: [[47.846713,1.916717],[47.846662,1.916349],[47.846318,1.916160]] },
@@ -112,6 +128,13 @@ const routes = [
   { from: "R2", to: "C1", name: "Rond-point Ligue Rugby → Ecole-IT", coords: [[47.851766,1.913017],[47.851411,1.912900],[47.848741,1.912563],[47.847661,1.913050],[47.847117,1.913944]] }
 ];
 
+// If no explicit device mapping is provided, map routes in order to road_01, road_02, ...
+routes.forEach((r, i) => {
+  if (!r.device) {
+    const idx = String(i + 1).padStart(2, '0');
+    r.device = `road_${idx}`;
+  }
+});
 // --- Attributs dynamiques (trafic uniquement) ---
 routes.forEach(r => {
   // Initialize route value from sensor if available, otherwise default to 0
@@ -292,7 +315,6 @@ document.getElementById("calculateRouteBtn").addEventListener("click", updateOpt
 
 // --- Intervalle 5s pour mettre à jour le trafic et recalcul automatique ---
 setInterval(() => {
-  routes.forEach(r => r.value = Math.floor(Math.random() * 101));
   updateRoutes();
   updateOptimalRoute();
 }, 5000);

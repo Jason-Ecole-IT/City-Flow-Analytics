@@ -6,6 +6,11 @@ services:
       - .env
     environment:
       - DB_HOST=timescaledb
+      - INGESTION_API_PORT=8080
+      - INGESTION_CORS_ORIGIN=http://localhost:4000
+      - INGESTION_LOG_LEVEL=info
+    ports:
+      - "8080:8080"
     depends_on:
       timescaledb:
         condition: service_healthy
@@ -18,6 +23,8 @@ services:
     container_name: frontend
     ports:
       - "4000:4000"
+    environment:
+      - INGESTION_API_URL=http://ingestion:8080
     restart: unless-stopped
     networks:
       - city-flow
@@ -43,7 +50,7 @@ services:
     volumes:
       - timescaledb-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -71,7 +78,7 @@ services:
   sensor1:
     build: ./src/iot-simulator
     container_name: sensor1
-    command: ["python", "sensor1.py"]
+    command: [ "python", "sensor1.py" ]
     env_file:
       - .env
     environment:
@@ -86,7 +93,7 @@ services:
   sensor2:
     build: ./src/iot-simulator
     container_name: sensor2
-    command: ["python", "sensor2.py"]
+    command: [ "python", "sensor2.py" ]
     env_file:
       - .env
     environment:
@@ -101,7 +108,7 @@ services:
   sensor3:
     build: ./src/iot-simulator
     container_name: sensor3
-    command: ["python", "sensor3.py"]
+    command: [ "python", "sensor3.py" ]
     env_file:
       - .env
     environment:
@@ -116,7 +123,7 @@ services:
   sensor4:
     build: ./src/iot-simulator
     container_name: sensor4
-    command: ["python", "sensor4.py"]
+    command: [ "python", "sensor4.py" ]
     env_file:
       - .env
     environment:
@@ -131,7 +138,7 @@ services:
   sensor5:
     build: ./src/iot-simulator
     container_name: sensor5
-    command: ["python", "sensor5.py"]
+    command: [ "python", "sensor5.py" ]
     env_file:
       - .env
     environment:
@@ -146,7 +153,202 @@ services:
   sensor6:
     build: ./src/iot-simulator
     container_name: sensor6
-    command: ["python", "sensor6.py"]
+    command: [ "python", "sensor6.py" ]
+    env_file:
+      - .env
+    environment:
+      - MQTT_BROKER=mosquitto
+    depends_on:
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - city-flow
+
+  sensor7:
+    build: ./src/iot-simulator
+    container_name: sensor7
+    command: [ "python", "sensor7.py" ]
+    env_file:
+      - .env
+    environment:
+      - MQTT_BROKER=mosquitto
+    depends_on:
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - city-flow
+
+  sensor8:
+    build: ./src/iot-simulator
+    container_name: sensor8
+    command: [ "python", "sensor8.py" ]
+    env_file:
+      - .env
+    environment:
+      - MQTT_BROKER=mosquitto
+    depends_on:
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - city-flow
+
+  sensor9:
+    build: ./src/iot-simulator
+    container_name: sensor9
+    command: [ "python", "sensor9.py" ]
+    env_file:
+      - .env
+    environment:
+      - MQTT_BROKER=mosquitto
+    depends_on:
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - city-flow
+
+  sensor10:
+    build: ./src/iot-simulator
+    container_name: sensor10
+    command: [ "python", "sensor10.py" ]
+    env_file:
+      - .env
+    environment:
+      - MQTT_BROKER=mosquitto
+    depends_on:
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - city-flow
+
+  sensor11:
+    build: ./src/iot-simulator
+    container_name: sensor11
+    command: [ "python", "sensor11.py" ]
+    env_file:
+      - .env
+    environment:
+      - MQTT_BROKER=mosquitto
+    depends_on:
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - city-flow
+
+  sensor12:
+    build: ./src/iot-simulator
+    container_name: sensor12
+    command: [ "python", "sensor12.py" ]
+    env_file:
+      - .env
+    environment:
+      - MQTT_BROKER=mosquitto
+    depends_on:
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - city-flow
+
+  sensor13:
+    build: ./src/iot-simulator
+    container_name: sensor13
+    command: [ "python", "sensor13.py" ]
+    env_file:
+      - .env
+    environment:
+      - MQTT_BROKER=mosquitto
+    depends_on:
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - city-flow
+
+  sensor14:
+    build: ./src/iot-simulator
+    container_name: sensor14
+    command: [ "python", "sensor14.py" ]
+    env_file:
+      - .env
+    environment:
+      - MQTT_BROKER=mosquitto
+    depends_on:
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - city-flow
+
+  sensor15:
+    build: ./src/iot-simulator
+    container_name: sensor15
+    command: [ "python", "sensor15.py" ]
+    env_file:
+      - .env
+    environment:
+      - MQTT_BROKER=mosquitto
+    depends_on:
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - city-flow
+
+  sensor16:
+    build: ./src/iot-simulator
+    container_name: sensor16
+    command: [ "python", "sensor16.py" ]
+    env_file:
+      - .env
+    environment:
+      - MQTT_BROKER=mosquitto
+    depends_on:
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - city-flow
+
+  sensor17:
+    build: ./src/iot-simulator
+    container_name: sensor17
+    command: [ "python", "sensor17.py" ]
+    env_file:
+      - .env
+    environment:
+      - MQTT_BROKER=mosquitto
+    depends_on:
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - city-flow
+
+  sensor18:
+    build: ./src/iot-simulator
+    container_name: sensor18
+    command: [ "python", "sensor18.py" ]
+    env_file:
+      - .env
+    environment:
+      - MQTT_BROKER=mosquitto
+    depends_on:
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - city-flow
+
+  sensor19:
+    build: ./src/iot-simulator
+    container_name: sensor19
+    command: [ "python", "sensor19.py" ]
     env_file:
       - .env
     environment:
@@ -160,6 +362,7 @@ services:
 
 volumes:
   timescaledb-data:
+
 
 networks:
   city-flow:

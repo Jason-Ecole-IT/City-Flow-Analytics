@@ -50,7 +50,7 @@ This document outlines the coventions followed during this project and throughou
 
 <br>
 
-## Coding Standards
+## Coding Standards Backend
 
 ### Variables
 
@@ -94,4 +94,48 @@ This document outlines the coventions followed during this project and throughou
 > ```python
 > func()
 > array()
+>```
+
+### Constants
+
+> [!Tip]
+>
+> - `Good Practice`: Use uppercase with underscores for constants.
+>
+> ```python
+> MAX_USERS = 100
+> DEFAULT_TIMEOUT = 30
+> ```
+
+<br>
+
+> [!Caution]
+>
+> - `Bad Practice`: Avoid using lowercase or mixed case for constants.
+>
+> ```python
+> maxUsers = 100
+> defaultTimeout = 30
+> ```
+
+### Package
+
+> [!Tip]
+>
+> - `Good Practice`: Use lowercase, single-word names for packages.
+>
+> ```go
+> package user
+> import "fmt"
+>```
+
+<br>
+
+> [!Caution]
+>
+> - `Bad Practice`: Avoid using uppercase letters, spaces, or special characters in package names.
+>
+> ```go
+> package User
+> import "$fmt"
 >```

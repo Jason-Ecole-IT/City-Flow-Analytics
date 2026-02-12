@@ -62,6 +62,13 @@ func main() {
 
 	fmt.Println("[INGESTION] Service started successfully")
 
+	// Ensure processed_data table exists
+	if err := db.EnsureProcessedTable(); err != nil {
+		log.Printf("[WARN] Could not ensure processed_data table: %v\n", err)
+	} else {
+		fmt.Println("[DB] processed_data table is ready")
+	}
+
 	// Setup signal handler for graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -125,6 +132,32 @@ func processData(db *DBConnection) {
 	// Group and display by device for monitoring
 	groupedByDevice := GroupByDevice(latestReadings)
 	PrintDeviceGroupSummary(groupedByDevice)
+
+	// Persist processed data per device into processed_data table
+	for deviceID, readings := range groupedByDevice {
+		jsonPerDevice, err := SerializeToJSON(readings)
+		if err != nil {
+			log.Printf("[ERROR] Failed to serialize device %s readings: %v\n", deviceID, err)
+			continue
+		}
+
+		// Determine latest timestamp for this device
+		latestTs := time.Time{}
+		for _, r := range readings {
+			if r.Timestamp.After(latestTs) {
+				latestTs = r.Timestamp
+			}
+		}
+		if latestTs.IsZero() {
+			latestTs = time.Now()
+		}
+
+		if err := db.SaveProcessedData(deviceID, latestTs, jsonPerDevice); err != nil {
+			log.Printf("[ERROR] Failed to save processed data for device %s: %v\n", deviceID, err)
+			continue
+		}
+		fmt.Printf("[DB] Saved processed data for device %s (%d sensors)\n", deviceID, len(readings))
+	}
 
 	fmt.Printf("[SUCCESS] Ingestion cycle complete: %d sensors from %d devices\n", len(latestReadings), len(groupedByDevice))
 }

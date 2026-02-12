@@ -80,6 +80,9 @@ func (dbc *DBConnection) GetLatestSensorReadings() ([]SensorData, error) {
 
 // EnsureProcessedTable creates the processed_data table if it does not exist
 func (dbc *DBConnection) EnsureProcessedTable() error {
+	// Ensure TimescaleDB extension is available (no-op if already present)
+	_, _ = dbc.conn.Exec(`CREATE EXTENSION IF NOT EXISTS timescaledb;`)
+
 	query := `
 	CREATE TABLE IF NOT EXISTS processed_data (
 		time TIMESTAMPTZ NOT NULL,
@@ -91,6 +94,9 @@ func (dbc *DBConnection) EnsureProcessedTable() error {
 	if err != nil {
 		return fmt.Errorf("failed to ensure processed_data table: %w", err)
 	}
+
+	// Convert to a TimescaleDB hypertable if possible (if_not_exists prevents errors if already a hypertable)
+	_, _ = dbc.conn.Exec(`SELECT create_hypertable('processed_data', 'time', if_not_exists => TRUE);`)
 
 	// Create an index to speed up queries by device and time
 	_, _ = dbc.conn.Exec(`CREATE INDEX IF NOT EXISTS idx_processed_device_time ON processed_data (device_id, time DESC);`)

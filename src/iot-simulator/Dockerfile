@@ -30,7 +30,6 @@ COPY sensor16.py .
 COPY sensor17.py .
 COPY sensor18.py .
 COPY sensor19.py .
-COPY sensor20.py .
 
 # Comportement par défaut : lancer le subscriber
 CMD ["python", "subscriber.py"]

@@ -12,7 +12,7 @@ SENSOR_TYPE = "occupancy"
 
 INTERVAL = 15
 BASE_OCCUPANCY = 50
-MAX_VARIANCE = 5
+MAX_VARIANCE = 10
 
 client = mqtt.Client(client_id=DEVICE_ID)
 client.connect(MQTT_BROKER, MQTT_PORT, 60)

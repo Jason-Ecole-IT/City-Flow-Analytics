@@ -1,8 +1,8 @@
 const express = require('express');
 const path = require('path');
 
-const fetch = (...args) =>
-  import('node-fetch').then(({ default: fetch }) => fetch(...args));
+// Use global fetch when available (Node 18+), otherwise fall back to dynamic import of node-fetch
+const fetch = global.fetch || ((...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args)));
 
 const app = express();
 const PORT = 4000;

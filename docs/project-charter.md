@@ -33,3 +33,14 @@
 | Intégration    | 11/02 |
 | Déploiments    | 12/02 |
 | Présentation   | 13/02 |
+
+## Vision Business
+
+Le projet CityFlow vise à améliorer l'experience de mobilité urbaine à nos usagers en leurs fournissant des données leurs permettant de mieux planifier leurs trajets et éviter les zones de congestion.
+
+Pour qui? Les personnes qui vivent ou travaillent dans des zones urbaines et qui sont affectées par les problèmes de traffic.
+Pour quel besoin? Eviter les embouteillages, réduire le temps de trajet, et améliorer la qualité de vie en ville.
+
+## Concurrence
+
+Le problème de la congestion urbaine est un problème mondial, et il existe plusieurs solutions sur le marché, telles que Google Maps, Waze ou Sytadin. Cependant, notre projet se différencie en se concentrant sur la collecte de données en temps réel à partir de capteurs physiques, ce qui peut fournir des informations plus précises et localisées que les solutions basées uniquement sur les données des utilisateurs.

@@ -78,9 +78,17 @@ Le backend est développé en Go et utilise MQTT pour recevoir les données des 
 
 Le frontend est développé en NodeJS et utilise D3.js pour visualiser les données de traffic en temps réel. Il affiche les routes principales, secondaires et les zones de congestion avec des couleurs indiquant le niveau de traffic. Sur le panneau latéral, il affiche les statistiques de traffic en temps réel et les recommandations de chemins alternatifs.
 
+Code Couleur:
+
+- Vert: Traffic fluide, valeur de traffic inférieure à 30% de la capacité de la route
+- Jaune: Traffic modéré, valeur de traffic entre 30% et 70% de la capacité de la route
+- Rouge: Traffic congestionné, valeur de traffic supérieure à 70% de la capacité de la route
+
 ### CI/CD
 
 Nous avons mis en place une pipeline CI/CD avec GitHub Actions pour automatiser les tests et le déploiement de notre application. Nous utilisons Docker pour containeriser notre application et Kubernetes pour orchestrer le déploiement.
+
+Afin de maintenir la qualité et l'intégrité de notre code, nous avons mis en place des tests unitaires et d'intégration pour le frontend, les services et le simulateur IoT. Ces tests sont exécutés automatiquement à chaque push sur la branche de développement, assurant ainsi que les nouvelles modifications n'introduisent pas de régressions ou de bugs dans le(s) systeme(s).
 
 ### Monitoring
 

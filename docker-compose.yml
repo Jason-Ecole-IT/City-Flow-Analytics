@@ -1,9 +1,6 @@
 services:
   ingestion:
     build: ./src/services/ingestion
-    ports:
-      - "8080:8080"
-    restart: unless-stopped
     container_name: ingestion
     env_file:
       - .env
@@ -77,9 +74,14 @@ services:
     command: ["python", "sensor1.py"]
     env_file:
       - .env
+    environment:
+      - MQTT_BROKER=mosquitto
     depends_on:
-      - mosquitto
+      mosquitto:
+        condition: service_started
     restart: unless-stopped
+    networks:
+      - city-flow
 
   sensor2:
     build: ./src/iot-simulator
@@ -87,9 +89,14 @@ services:
     command: ["python", "sensor2.py"]
     env_file:
       - .env
+    environment:
+      - MQTT_BROKER=mosquitto
     depends_on:
-      - mosquitto
+      mosquitto:
+        condition: service_started
     restart: unless-stopped
+    networks:
+      - city-flow
 
   sensor3:
     build: ./src/iot-simulator
@@ -97,9 +104,14 @@ services:
     command: ["python", "sensor3.py"]
     env_file:
       - .env
+    environment:
+      - MQTT_BROKER=mosquitto
     depends_on:
-      - mosquitto
+      mosquitto:
+        condition: service_started
     restart: unless-stopped
+    networks:
+      - city-flow
 
   sensor4:
     build: ./src/iot-simulator
@@ -107,9 +119,14 @@ services:
     command: ["python", "sensor4.py"]
     env_file:
       - .env
+    environment:
+      - MQTT_BROKER=mosquitto
     depends_on:
-      - mosquitto
+      mosquitto:
+        condition: service_started
     restart: unless-stopped
+    networks:
+      - city-flow
 
   sensor5:
     build: ./src/iot-simulator
@@ -117,9 +134,14 @@ services:
     command: ["python", "sensor5.py"]
     env_file:
       - .env
+    environment:
+      - MQTT_BROKER=mosquitto
     depends_on:
-      - mosquitto
+      mosquitto:
+        condition: service_started
     restart: unless-stopped
+    networks:
+      - city-flow
 
   sensor6:
     build: ./src/iot-simulator

@@ -3,11 +3,13 @@ services:
     build: ./src/services/ingestion
     ports:
       - "8080:8080"
+    restart: unless-stopped
 
   frontend:
     build: ./src/frontend
     ports:
       - "4000:4000"
+    restart: unless-stopped
 
   mosquitto:
     build: ./src/mosquitto
@@ -39,10 +41,60 @@ services:
       - timescaledb
     restart: unless-stopped
 
-  sensor:
+  sensor1:
     build: ./src/iot-simulator
-    container_name: sensor
-    command: ["python", "sensor.py"]
+    container_name: sensor1
+    command: ["python", "sensor1.py"]
+    env_file:
+      - .env
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
+
+  sensor2:
+    build: ./src/iot-simulator
+    container_name: sensor2
+    command: ["python", "sensor2.py"]
+    env_file:
+      - .env
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
+
+  sensor3:
+    build: ./src/iot-simulator
+    container_name: sensor3
+    command: ["python", "sensor3.py"]
+    env_file:
+      - .env
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
+
+  sensor4:
+    build: ./src/iot-simulator
+    container_name: sensor4
+    command: ["python", "sensor4.py"]
+    env_file:
+      - .env
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
+
+  sensor5:
+    build: ./src/iot-simulator
+    container_name: sensor5
+    command: ["python", "sensor5.py"]
+    env_file:
+      - .env
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
+
+  sensor6:
+    build: ./src/iot-simulator
+    container_name: sensor6
+    command: ["python", "sensor6.py"]
     env_file:
       - .env
     depends_on:

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node index.js",
     "start": "node index.js",
-    "test": "jest --runInBand"
+    "test": "jest --coverage --passWithNoTests",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -14,10 +15,12 @@
   },
   "devDependencies": {
     "jest": "^29.7.0",
-    "supertest": "^6.3.4"
+    "supertest": "^6.3.3"
   },
   "jest": {
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "collectCoverageFrom": ["*.js", "!node_modules/**"],
+    "testMatch": ["**/?(*.)+(spec|test).js"]
   },
   "author": "Alexis",
   "license": "MIT"

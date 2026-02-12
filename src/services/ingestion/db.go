@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -76,4 +77,73 @@ func (dbc *DBConnection) GetLatestSensorReadings() ([]SensorData, error) {
 	}
 
 	return data, nil
+}
+
+// EnsureProcessedTable creates the processed_data table if it does not exist
+func (dbc *DBConnection) EnsureProcessedTable() error {
+	// Ensure TimescaleDB extension is available (no-op if already present)
+	_, _ = dbc.conn.Exec(`CREATE EXTENSION IF NOT EXISTS timescaledb;`)
+
+	query := `
+	CREATE TABLE IF NOT EXISTS processed_data (
+		time TIMESTAMPTZ NOT NULL,
+		device_id TEXT,
+		data JSONB
+	);
+	`
+	_, err := dbc.conn.Exec(query)
+	if err != nil {
+		return fmt.Errorf("failed to ensure processed_data table: %w", err)
+	}
+
+	// Convert to a TimescaleDB hypertable if possible (if_not_exists prevents errors if already a hypertable)
+	_, _ = dbc.conn.Exec(`SELECT create_hypertable('processed_data', 'time', if_not_exists => TRUE);`)
+
+	// Create an index to speed up queries by device and time
+	_, _ = dbc.conn.Exec(`CREATE INDEX IF NOT EXISTS idx_processed_device_time ON processed_data (device_id, time DESC);`)
+	return nil
+}
+
+// SaveProcessedData inserts a JSON blob for a device at the given timestamp
+func (dbc *DBConnection) SaveProcessedData(deviceID string, ts time.Time, jsonData []byte) error {
+	query := `
+	INSERT INTO processed_data (time, device_id, data)
+	VALUES ($1, $2, $3::jsonb)
+	`
+	_, err := dbc.conn.Exec(query, ts, deviceID, string(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to insert processed data for device %s: %w", deviceID, err)
+	}
+	return nil
+}
+
+// GetLatestProcessedPerDevice returns the most recent processed JSON blob per device
+func (dbc *DBConnection) GetLatestProcessedPerDevice() (map[string]json.RawMessage, error) {
+	query := `
+		SELECT DISTINCT ON (device_id) time, device_id, data
+		FROM processed_data
+		ORDER BY device_id, time DESC
+	`
+
+	rows, err := dbc.conn.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query latest processed data: %w", err)
+	}
+	defer rows.Close()
+
+	results := make(map[string]json.RawMessage)
+	for rows.Next() {
+		var ts time.Time
+		var deviceID string
+		var dataBytes []byte
+		if err := rows.Scan(&ts, &deviceID, &dataBytes); err != nil {
+			return nil, fmt.Errorf("failed to scan processed_data row: %w", err)
+		}
+		// store raw JSON as json.RawMessage so it can be marshaled directly
+		results[deviceID] = json.RawMessage(dataBytes)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating processed_data rows: %w", err)
+	}
+	return results, nil
 }

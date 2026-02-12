@@ -1,14 +1,14 @@
 # Conventions
 
-This document outlines the coventions followed during this project and throughout the codebase to ensure consistency and maintainability.
+Ce document présente les conventions suivies durant ce projet et dans l'ensemble du code afin d'assurer cohérence et maintenabilité.
 
-## Files and Directories
+## Fichiers et répertoires
 
-### Folder Naming Conventions
+### Conventions de nommage des dossiers
 
 > [!TIP]
 >
-> - `Good Practice`: Use concise and descriptive names with `snake_case` for folders.
+> - `Bonne pratique` : Utilisez des noms concis et descriptifs en `snake_case` pour les dossiers.
 >
 > ```md
 > documents
@@ -17,20 +17,20 @@ This document outlines the coventions followed during this project and throughou
 
 <br>
 
-> [!Caution]
+> [!ATTENTION]
 >
-> - `Bad Practice`: Avoid using spaces, special characters, or overly long names for folders.
+> - `Mauvaise pratique` : Évitez les espaces, les caractères spéciaux ou des noms trop longs pour les dossiers.
 >
 > ```md
 > My Documents
 > data models
 > ```
 
-### File Naming Conventions
+### Conventions de nommage des fichiers
 
 > [!TIP]
 >
-> - `Good Practice`: Use `kebab-case` for files with clear and descriptive names.
+> - `Bonne pratique` : Utilisez le `kebab-case` pour les fichiers avec des noms clairs et descriptifs.
 >
 > ```md
 > user-profile.json
@@ -39,9 +39,9 @@ This document outlines the coventions followed during this project and throughou
 
 <br>
 
-> [!Caution]
+> [!ATTENTION]
 >
-> - `Bad Practice`: Avoid using camelCase, spaces, or special characters in file names.
+> - `Mauvaise pratique` : Évitez d'utiliser le camelCase, des espaces ou des caractères spéciaux dans les noms de fichiers.
 >
 > ```md
 > a.json
@@ -50,13 +50,13 @@ This document outlines the coventions followed during this project and throughou
 
 <br>
 
-## Coding Standards Backend
+## Normes de codage - Backend
 
 ### Variables
 
-> [!Tip]
+> [!TIP]
 >
-> - `Good Practice`: Use descriptive names in snake_case for variables.
+> - `Bonne pratique` : Utilisez des noms descriptifs en snake_case pour les variables.
 >
 > ```python
 > user_count = 10
@@ -65,20 +65,20 @@ This document outlines the coventions followed during this project and throughou
 
 <br>
 
-> [!Caution]
+> [!ATTENTION]
 >
-> - `Bad Practice`: Avoid using single-letter names or ambiguous terms for variables.
+> - `Mauvaise pratique` : Évitez les noms d'une seule lettre ou des termes ambigus pour les variables.
 >
 > ```python
 > a = 10
 > list = ["alice", "bob", "charlie"]
 > ```
 
-### Functions
+### Fonctions
 
-> [!Tip]
+> [!TIP]
 >
-> - `Good Practice`: Use descriptive names in snake_case for functions.
+> - `Bonne pratique` : Utilisez des noms descriptifs en snake_case pour les fonctions.
 >
 > ```python
 > get_user_count()
@@ -87,20 +87,20 @@ This document outlines the coventions followed during this project and throughou
 
 <br>
 
-> [!Caution]
+> [!ATTENTION]
 >
-> - `Bad Practice`: Avoid using generic names or ambiguous terms for functions.
+> - `Mauvaise pratique` : Évitez d'utiliser des noms génériques ou ambigus pour les fonctions.
 >
 > ```python
 > func()
 > array()
 >```
 
-### Constants
+### Constantes
 
-> [!Tip]
+> [!TIP]
 >
-> - `Good Practice`: Use uppercase with underscores for constants.
+> - `Bonne pratique` : Utilisez des majuscules avec des underscores pour les constantes.
 >
 > ```python
 > MAX_USERS = 100
@@ -109,9 +109,9 @@ This document outlines the coventions followed during this project and throughou
 
 <br>
 
-> [!Caution]
+> [!ATTENTION]
 >
-> - `Bad Practice`: Avoid using lowercase or mixed case for constants.
+> - `Mauvaise pratique` : Évitez d'utiliser des minuscules ou un mélange de casse pour les constantes.
 >
 > ```python
 > maxUsers = 100
@@ -120,9 +120,9 @@ This document outlines the coventions followed during this project and throughou
 
 ### Package
 
-> [!Tip]
+> [!TIP]
 >
-> - `Good Practice`: Use lowercase, single-word names for packages.
+> - `Bonne pratique` : Utilisez des noms de package en minuscules et en un seul mot.
 >
 > ```go
 > package user
@@ -131,9 +131,9 @@ This document outlines the coventions followed during this project and throughou
 
 <br>
 
-> [!Caution]
+> [!ATTENTION]
 >
-> - `Bad Practice`: Avoid using uppercase letters, spaces, or special characters in package names.
+> - `Mauvaise pratique` : Évitez les lettres majuscules, les espaces ou les caractères spéciaux dans les noms de package.
 >
 > ```go
 > package User

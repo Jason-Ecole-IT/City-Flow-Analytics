@@ -10,7 +10,7 @@
 | :-----------: | :---------: |
 |   09/02/26    |  13/02/26   |
 
-## Project Overview
+## Objectif du projet
 
 |   Problem or Issue    |                              N / A                               |
 | :-------------------: | :--------------------------------------------------------------: |
@@ -19,7 +19,7 @@
 |  Objectif / Métrique  |               Précision des mesures / prédictions                |
 | Delivrables attendues |                Un système de surveillance urbain                 |
 
-## Project Scope
+## Scope du projet
 
 |   Dans le Scope    | Récupérer des données de capteurs, Calculer des statistics de traffic, Proposition de chemin alternatifs |
 | :----------------: | :------------------------------------------------------------------------------------------------------: |

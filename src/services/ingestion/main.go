@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -61,6 +63,47 @@ func main() {
 	defer db.Close()
 
 	fmt.Println("[INGESTION] Service started successfully")
+
+	// Ensure processed_data table exists
+	if err := db.EnsureProcessedTable(); err != nil {
+		log.Printf("[WARN] Could not ensure processed_data table: %v\n", err)
+	} else {
+		fmt.Println("[DB] processed_data table is ready")
+	}
+
+	// Start a small HTTP API to expose latest processed data for downstream services / frontend
+	apiPort := getEnvOrDefault("INGESTION_API_PORT", "8080")
+
+	http.HandleFunc("/processed/latest", func(w http.ResponseWriter, r *http.Request) {
+		// CORS handling: allow configurable origin via INGESTION_CORS_ORIGIN (default '*')
+		corsOrigin := getEnvOrDefault("INGESTION_CORS_ORIGIN", "*")
+		w.Header().Set("Access-Control-Allow-Origin", corsOrigin)
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		if r.Method == http.MethodOptions {
+			// Preflight request
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		data, err := db.GetLatestProcessedPerDevice()
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to fetch latest processed data: %v", err), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		// marshal map[string]json.RawMessage into a JSON object
+		out, _ := json.MarshalIndent(data, "", "  ")
+		w.Write(out)
+	})
+
+	go func() {
+		fmt.Printf("[API] Starting ingestion API on :%s\n", apiPort)
+		if err := http.ListenAndServe(":"+apiPort, nil); err != nil {
+			log.Printf("[API] HTTP server stopped: %v\n", err)
+		}
+	}()
 
 	// Setup signal handler for graceful shutdown
 	sigChan := make(chan os.Signal, 1)
@@ -125,6 +168,32 @@ func processData(db *DBConnection) {
 	// Group and display by device for monitoring
 	groupedByDevice := GroupByDevice(latestReadings)
 	PrintDeviceGroupSummary(groupedByDevice)
+
+	// Persist processed data per device into processed_data table
+	for deviceID, readings := range groupedByDevice {
+		jsonPerDevice, err := SerializeToJSON(readings)
+		if err != nil {
+			log.Printf("[ERROR] Failed to serialize device %s readings: %v\n", deviceID, err)
+			continue
+		}
+
+		// Determine latest timestamp for this device
+		latestTs := time.Time{}
+		for _, r := range readings {
+			if r.Timestamp.After(latestTs) {
+				latestTs = r.Timestamp
+			}
+		}
+		if latestTs.IsZero() {
+			latestTs = time.Now()
+		}
+
+		if err := db.SaveProcessedData(deviceID, latestTs, jsonPerDevice); err != nil {
+			log.Printf("[ERROR] Failed to save processed data for device %s: %v\n", deviceID, err)
+			continue
+		}
+		fmt.Printf("[DB] Saved processed data for device %s (%d sensors)\n", deviceID, len(readings))
+	}
 
 	fmt.Printf("[SUCCESS] Ingestion cycle complete: %d sensors from %d devices\n", len(latestReadings), len(groupedByDevice))
 }

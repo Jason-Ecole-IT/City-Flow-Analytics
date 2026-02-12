@@ -36,3 +36,6 @@ CREATE TABLE sensor_data (
     value DOUBLE PRECISION
 );
 ```
+## Vider la table sensor_data
+
+`TRUNCATE TABLE sensor_data;`

@@ -5,17 +5,71 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "&copy; OpenStreetMap contributors"
 }).addTo(map);
 
+// --- Database ---
+
+// Map to hold latest sensor values keyed by route name or sensor id.
+// This is populated by polling the ingestion API which exposes `processed_data`.
+const sensorValues = {};
+
+// Helper: fetch processed_data from ingestion API and update `sensorValues`
+async function pollProcessedData() {
+  try {
+    const res = await fetch('/api/processed/latest');
+    if (!res.ok) return;
+    const data = await res.json(); // { device_id: <json blob> }
+
+    // data[device_id] is a JSON array of sensor readings [{device_id,sensor,value,timestamp}, ...]
+    // Strategy: try to match by device_id === route.name; otherwise search all devices for matching sensor name
+    routes.forEach(r => {
+      const desiredSensor = r.sensor || r.name;
+      let assigned = false;
+
+      // direct device match
+      if (data[r.name]) {
+        try {
+          const readings = JSON.parse(JSON.stringify(data[r.name]));
+          if (Array.isArray(readings) && readings.length > 0) {
+            // find specific sensor
+            const found = readings.find(x => x.sensor === desiredSensor) || readings[0];
+            sensorValues[r.name] = Math.round((found.value || 0));
+            assigned = true;
+          }
+        } catch (e) { /* ignore */ }
+      }
+
+      if (!assigned) {
+        // search across devices for a sensor with matching name
+        for (const devId in data) {
+          try {
+            const readings = JSON.parse(JSON.stringify(data[devId]));
+            if (!Array.isArray(readings)) continue;
+            const found = readings.find(x => x.sensor === desiredSensor);
+            if (found) {
+              sensorValues[r.name] = Math.round((found.value || 0));
+              assigned = true;
+              break;
+            }
+          } catch (e) { /* ignore */ }
+        }
+      }
+    });
+  } catch (e) {
+    // network errors ignored — dashboard will fallback to random/demo values
+  }
+}
+
+
 // --- Intersections ---
 const intersections = [
-  { id: "C1", lat: 47.847131, lng: 1.914037 },
-  { id: "C2", lat: 47.846318, lng: 1.916160 },
-  { id: "C3", lat: 47.846097, lng: 1.917004 },
-  { id: "C4", lat: 47.846244, lng: 1.917344 },
-  { id: "S1", lat: 47.846713, lng: 1.916717 },
-  { id: "R1", lat: 47.849052, lng: 1.915603 },
-  { id: "R2", lat: 47.851791, lng: 1.913284 },
-  { id: "R3", lat: 47.845342, lng: 1.916557 },
-  { id: "R4", lat: 47.845313, lng: 1.920707 }
+  { id: "C1", name: "Ecole-IT", lat: 47.847131, lng: 1.914037 },
+  { id: "C2", name: "Parking Tao Flexo", lat: 47.846318, lng: 1.916160 },
+  { id: "C3", name: "Maison des Sports (MDS)", lat: 47.846097, lng: 1.917004 },
+  { id: "C4", name: "Parc relais Les Aulnaies", lat: 47.846244, lng: 1.917344 },
+  { id: "S1", name: "Les Aulnaies", lat: 47.846713, lng: 1.916717 },
+  { id: "R1", name: "Rond-point de la Juine", lat: 47.849052, lng: 1.915603 },
+  { id: "R2", name: "Rond-point Ligue Centre-Val de Loire de Rugby", lat: 47.851791, lng: 1.913284 },
+  { id: "R3", name: "Rond-point MacDonalds", lat: 47.845342, lng: 1.916557 },
+  { id: "R4", name: "Résidence le Dhuy", lat: 47.845313, lng: 1.920707 }
 ];
 
 // --- Ajout des markers ---
@@ -27,7 +81,7 @@ intersections.forEach(i => {
     fillOpacity: 0.8
   }).addTo(map);
 
-  i.marker.bindPopup(`<b>${i.id}</b>`);
+  i.marker.bindPopup(`<b>${i.name}</b>`);
 });
 
 // Centrage automatique
@@ -36,30 +90,32 @@ map.fitBounds(group.getBounds(), { padding: [50, 50], maxZoom: 17 });
 
 // --- Routes ---
 const routes = [
-  { from: "C1", to: "C2", name: "C1 → C2", coords: [[47.847079,1.914020],[47.846572,1.915059],[47.846292,1.916141]] },
-  { from: "C2", to: "C1", name: "C2 → C1", coords: [[47.846318,1.916160],[47.846608,1.915079],[47.847131,1.914037]] },
-  { from: "S1", to: "C2", name: "S1 → C2", coords: [[47.846713,1.916717],[47.846662,1.916349],[47.846318,1.916160]] },
-  { from: "C2", to: "C3", name: "C2 → C3", coords: [[47.846292,1.916141],[47.846079,1.916982]] },
-  { from: "C3", to: "C2", name: "C3 → C2", coords: [[47.846120,1.917031],[47.846318,1.916160]] },
   { from: "C3", to: "C4", name: "C3 → C4", coords: [[47.846111,1.917106],[47.846244,1.917344]] },
-  { from: "C3", to: "R3", name: "C3 → R3", coords: [[47.846079,1.916982],[47.845535,1.916645]] },
-  { from: "R3", to: "C3", name: "R3 → C3", coords: [[47.845492,1.916809],[47.846047,1.917072]] },
-  { from: "C3", to: "R4", name: "C3 → R4", coords: [[47.846047,1.917072],[47.845253,1.920536]] },
-  { from: "R4", to: "C4", name: "R4 → C4", coords: [[47.845388,1.920535],[47.846000,1.917760],[47.846244,1.917344]] },
-  { from: "C4", to: "S1", name: "C4 → S1", coords: [[47.846244,1.917344],[47.846713,1.916717]] },
-  { from: "S1", to: "R1", name: "S1 → R1", coords: [[47.846713,1.916717],[47.847145,1.916337],[47.849042,1.915712]] },
-  { from: "R1", to: "C2", name: "R1 → C2", coords: [[47.848926,1.915529],[47.846718,1.916309],[47.846348,1.916105]] },
-  { from: "C1", to: "R1", name: "C1 → R1", coords: [[47.847116,1.914134],[47.848925,1.915155],[47.848942,1.915505]] },
-  { from: "R1", to: "C1", name: "R1 → C1", coords: [[47.849081,1.915419],[47.848969,1.915024],[47.847206,1.913961]] },
-  { from: "R1", to: "R2", name: "R1 → R2", coords: [[47.849042,1.915712],[47.850425,1.914983],[47.851770,1.913445]] },
-  { from: "R2", to: "R1", name: "R2 → R1", coords: [[47.851659,1.913332],[47.850312,1.914796],[47.849101,1.915453]] },
-  { from: "C1", to: "R2", name: "C1 → R2", coords: [[47.847209,1.913924],[47.847836,1.913091],[47.848958,1.912749],[47.851497,1.913057],[47.851644,1.913184]] },
-  { from: "R2", to: "C1", name: "R2 → C1", coords: [[47.851766,1.913017],[47.851411,1.912900],[47.848741,1.912563],[47.847661,1.913050],[47.847117,1.913944]] }
+  { from: "C1", to: "C2", name: "Ecole-IT → Parking Tao Flexo", coords: [[47.847079,1.914020],[47.846572,1.915059],[47.846292,1.916141]] },
+  { from: "C2", to: "C1", name: "Parking Tao Flexo → Ecole-IT", coords: [[47.846318,1.916160],[47.846608,1.915079],[47.847131,1.914037]] },
+  { from: "S1", to: "C2", name: "Les Aulnaies → Parking Tao Flexo", coords: [[47.846713,1.916717],[47.846662,1.916349],[47.846318,1.916160]] },
+  { from: "C2", to: "C3", name: "Parking Tao Flexo → Maison des Sports (MDS)", coords: [[47.846292,1.916141],[47.846079,1.916982]] },
+  { from: "C3", to: "C2", name: "Maison des Sports (MDS) → Parking Tao Flexo", coords: [[47.846120,1.917031],[47.846318,1.916160]] },
+  { from: "C3", to: "C4", name: "Maison des Sports (MDS) → Parc relais Les Aulnaies", coords: [[47.846111,1.917106],[47.846244,1.917344]] },
+  { from: "C3", to: "R3", name: "Maison des Sports (MDS) → Rond-point MacDonalds", coords: [[47.846079,1.916982],[47.845535,1.916645]] },
+  { from: "R3", to: "C3", name: "Rond-point MacDonalds → Maison des Sports (MDS)", coords: [[47.845492,1.916809],[47.846047,1.917072]] },
+  { from: "C3", to: "R4", name: "Maison des Sports (MDS) → Résidence le Dhuy", coords: [[47.846047,1.917072],[47.845253,1.920536]] },
+  { from: "R4", to: "C4", name: "Résidence le Dhuy → Parc relais Les Aulnaies", coords: [[47.845388,1.920535],[47.846000,1.917760],[47.846244,1.917344]] },
+  { from: "C4", to: "S1", name: "Parc relais Les Aulnaies → Les Aulnaies", coords: [[47.846244,1.917344],[47.846713,1.916717]] },
+  { from: "S1", to: "R1", name: "Les Aulnaies → Rond-point de la Juine", coords: [[47.846713,1.916717],[47.847145,1.916337],[47.849042,1.915712]] },
+  { from: "R1", to: "C2", name: "Rond-point de la Juine → Parking Tao Flexo", coords: [[47.848926,1.915529],[47.846718,1.916309],[47.846348,1.916105]] },
+  { from: "C1", to: "R1", name: "Ecole-IT → Rond-point de la Juine", coords: [[47.847116,1.914134],[47.848925,1.915155],[47.848942,1.915505]] },
+  { from: "R1", to: "C1", name: "Rond-point de la Juine → Ecole-IT", coords: [[47.849081,1.915419],[47.848969,1.915024],[47.847206,1.913961]] },
+  { from: "R1", to: "R2", name: "Rond-point de la Juine → Rond-point Ligue Rugby", coords: [[47.849042,1.915712],[47.850425,1.914983],[47.851770,1.913445]] },
+  { from: "R2", to: "R1", name: "Rond-point Ligue Rugby → Rond-point de la Juine", coords: [[47.851659,1.913332],[47.850312,1.914796],[47.849101,1.915453]] },
+  { from: "C1", to: "R2", name: "Ecole-IT → Rond-point Ligue Rugby", coords: [[47.847209,1.913924],[47.847836,1.913091],[47.848958,1.912749],[47.851497,1.913057],[47.851644,1.913184]] },
+  { from: "R2", to: "C1", name: "Rond-point Ligue Rugby → Ecole-IT", coords: [[47.851766,1.913017],[47.851411,1.912900],[47.848741,1.912563],[47.847661,1.913050],[47.847117,1.913944]] }
 ];
 
 // --- Attributs dynamiques (trafic uniquement) ---
 routes.forEach(r => {
-  r.value = Math.floor(Math.random() * 101); // 0 à 100
+  // Initialize route value from sensor if available, otherwise default to 0
+  r.value = (sensorValues[r.name] !== undefined) ? sensorValues[r.name] : 0;
 });
 
 // --- Couleur selon trafic ---
@@ -77,13 +133,14 @@ function trafficToColor(value) {
   }
 }
 
-// --- Poids d’une route = trafic seulement ---
+// --- Poids d’une route = trafic uniquement ---
 function routeWeight(r) {
-  return r.value; // plus le trafic est élevé, plus le poids est lourd
+  return r.value;
 }
 
 // --- Variables pour polylines dynamiques ---
 let polylines = [];
+let currentRoutePolyline = null;
 const panel = document.getElementById("dashboardPanel");
 
 // --- Création dashboard ---
@@ -101,9 +158,8 @@ routes.forEach(r => {
   panel.appendChild(container);
 });
 
-// --- Fonction pour afficher routes sur carte et dashboard ---
+// --- Fonction pour afficher les routes et dashboard ---
 function updateRoutes() {
-  // Supprime anciennes polylines
   polylines.forEach(p => map.removeLayer(p));
   polylines = [];
 
@@ -113,7 +169,6 @@ function updateRoutes() {
     polyline.bindPopup(`<b>Route:</b> ${r.name}<br/>Trafic: ${r.value}`);
     polylines.push(polyline);
 
-    // dashboard
     const gaugeId = r.name.replace(/\s|→/g, '');
     const fill = document.getElementById(`gauge-${gaugeId}`);
     const text = document.getElementById(`gaugeText-${gaugeId}`);
@@ -127,9 +182,17 @@ function updateRoutes() {
 
 // --- Intervalle mise à jour du trafic toutes les 5s ---
 // --- Intervalle mise à jour du trafic toutes les 5s ---
-setInterval(() => {
+// Poll processed data and update traffic values every 30s to match ingestion cycles
+setInterval(async () => {
+  await pollProcessedData();
+
   // Mise à jour des valeurs de trafic
-  routes.forEach(r => r.value = Math.floor(Math.random() * 101));
+  routes.forEach(r => {
+    // Prefer live sensor value when available, otherwise fallback to random for demo
+    if (sensorValues[r.name] !== undefined) {
+      r.value = sensorValues[r.name];
+    }
+  });
   updateRoutes();
 
   // Recalcul automatique du meilleur chemin si start/end sélectionnés
@@ -149,7 +212,9 @@ setInterval(() => {
       currentRoutePolyline = L.polyline(coords, { color: "blue", weight: 8, opacity: 0.9, dashArray: "5,10" }).addTo(map);
     }
   }
-}, 5000);
+}, 30000);
+// Initial fetch from ingestion API then render routes
+pollProcessedData().then(updateRoutes).catch(() => updateRoutes());
 
 updateRoutes();
 
@@ -157,9 +222,7 @@ updateRoutes();
 function buildGraph() {
   const graph = {};
   intersections.forEach(i => graph[i.id] = []);
-  routes.forEach(r => {
-    graph[r.from].push({ to: r.to, route: r, weight: routeWeight(r) });
-  });
+  routes.forEach(r => graph[r.from].push({ to: r.to, route: r, weight: routeWeight(r) }));
   return graph;
 }
 
@@ -175,7 +238,6 @@ function dijkstra(graph, startId, endId) {
     pq.forEach(node => { if (u === null || dist[node] < dist[u]) u = node; });
     if (u === endId) break;
     pq.delete(u);
-
     graph[u].forEach(n => {
       const alt = dist[u] + n.weight;
       if (alt < dist[n.to]) {
@@ -191,24 +253,25 @@ function dijkstra(graph, startId, endId) {
   return path;
 }
 
-// --- Sélection départ/arrivée ---
-let currentRoutePolyline = null;
+// --- Sélections départ / arrivée ---
 const startSelect = document.getElementById("startSelect");
 const endSelect = document.getElementById("endSelect");
+
 intersections.forEach(i => {
-  const o1 = document.createElement("option"); o1.value = i.id; o1.text = i.id; startSelect.appendChild(o1);
-  const o2 = document.createElement("option"); o2.value = i.id; o2.text = i.id; endSelect.appendChild(o2);
+  const o1 = document.createElement("option"); o1.value = i.id; o1.text = i.name;
+  const o2 = document.createElement("option"); o2.value = i.id; o2.text = i.name;
+  startSelect.appendChild(o1);
+  endSelect.appendChild(o2);
 });
 
-// --- Calcul du meilleur chemin selon trafic ---
-document.getElementById("calculateRouteBtn").addEventListener("click", () => {
+// --- Fonction centrale pour calculer et afficher le meilleur chemin ---
+function updateOptimalRoute() {
   const start = startSelect.value;
   const end = endSelect.value;
   if (!start || !end) return;
 
-  const graph = buildGraph(); // Graphe dynamique avec poids actuels
+  const graph = buildGraph();
   const path = dijkstra(graph, start, end);
-
   if (!path || path.length < 2) return;
 
   const coords = [];
@@ -220,5 +283,20 @@ document.getElementById("calculateRouteBtn").addEventListener("click", () => {
 
   if (currentRoutePolyline) map.removeLayer(currentRoutePolyline);
   currentRoutePolyline = L.polyline(coords, { color: "blue", weight: 8, opacity: 0.9, dashArray: "5,10" }).addTo(map);
-  map.fitBounds(currentRoutePolyline.getBounds(), { padding: [50, 50] });
-});
+  currentRoutePolyline.bringToFront();
+  map.fitBounds(currentRoutePolyline.getBounds(), { padding: [50,50] });
+}
+
+// --- Bouton calcul manuel ---
+document.getElementById("calculateRouteBtn").addEventListener("click", updateOptimalRoute);
+
+// --- Intervalle 5s pour mettre à jour le trafic et recalcul automatique ---
+setInterval(() => {
+  routes.forEach(r => r.value = Math.floor(Math.random() * 101));
+  updateRoutes();
+  updateOptimalRoute();
+}, 5000);
+
+// --- Initial update ---
+updateRoutes();
+updateOptimalRoute();

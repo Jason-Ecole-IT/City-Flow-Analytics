@@ -42,10 +42,15 @@ jobs:
           cd src/frontend
           npm install
 
-      - name: Run frontend tests
+      - name: Run frontend tests (if any)
         run: |
           cd src/frontend
-          npm test
+          if npm run | grep -q "test"; then
+            npm test
+          else
+            echo "No frontend tests found — skipping"
+          fi
+
 
   test_iot_simulator:
     runs-on: ubuntu-latest

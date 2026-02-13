@@ -30,30 +30,28 @@ jobs:
           tar czf docker_images.tar.gz -C docker_images .
 
       - name: Fix permissions for archive
-        run: chmod 777 docker_images.tar.gz
+        run: chmod 600 docker_images.tar.gz
 
-      - name: Copy Docker images archive to VM
-        uses: appleboy/scp-action@v0.1.6
-        with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key: ${{ secrets.VM_SSH_KEY }}
-          source: docker_images.tar.gz
-          target: ~/cityflow/
+      - name: Copy Docker images archive to VM via SCP
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          scp -o StrictHostKeyChecking=no docker_images.tar.gz ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/cityflow/
 
-      - name: Load Docker images and deploy
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key: ${{ secrets.VM_SSH_KEY }}
-          script: |
+      - name: Load Docker images and deploy on VM via SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
             cd ~/cityflow
             mkdir -p docker_images
             tar xzf docker_images.tar.gz -C docker_images
             for IMAGE in docker_images/*.tar; do
-              docker load -i $IMAGE
+              docker load -i "$IMAGE"
             done
             rm -rf docker_images docker_images.tar.gz
             docker-compose down
             docker-compose up -d
+          EOF

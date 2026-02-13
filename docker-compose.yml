@@ -1,0 +1,91 @@
+services:
+  ingestion:
+    build: ./src/services/ingestion
+    container_name: ingestion
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=timescaledb
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - city-flow
+
+  frontend:
+    build: ./src/frontend
+    container_name: frontend
+    ports:
+      - "4000:4000"
+    restart: unless-stopped
+    networks:
+      - city-flow
+
+  mosquitto:
+    build: ./src/mosquitto
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+    restart: unless-stopped
+    networks:
+      - city-flow
+
+  timescaledb:
+    image: postgres:14
+    container_name: timescaledb
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - city-flow
+
+  subscriber:
+    build: ./src/iot-simulator
+    container_name: subscriber
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=timescaledb
+      - MQTT_BROKER=mosquitto
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - city-flow
+
+  sensor:
+    build: ./src/iot-simulator
+    container_name: sensor
+    command: ["python", "sensor.py"]
+    env_file:
+      - .env
+    environment:
+      - MQTT_BROKER=mosquitto
+    depends_on:
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - city-flow
+
+volumes:
+  timescaledb-data:
+
+networks:
+  city-flow:
+    driver: bridge

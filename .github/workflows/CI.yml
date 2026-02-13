@@ -24,16 +24,20 @@ jobs:
 
       - name: Build and Push images
         run: |
+          # On convertit en minuscules
           OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          
+          # Liste des services
           SERVICES=("src/services/ingestion" "src/frontend" "src/iot-simulator" "src/mosquitto")
 
           for SERVICE in "${SERVICES[@]}"; do
-            IMAGE_NAME=$(basename $SERVICE)
-            FULL_IMAGE_NAME="ghcr.io/$OWNER/$IMAGE_NAME:latest"
+            IMAGE_NAME=$(basename "$SERVICE")
+            FULL_IMAGE_NAME="ghcr.io/${OWNER}/${IMAGE_NAME}:latest"
             
             echo "Building and pushing $FULL_IMAGE_NAME..."
-            docker build -t $FULL_IMAGE_NAME $SERVICE
-            docker push $FULL_IMAGE_NAME
+            docker build -t "$FULL_IMAGE_NAME" "$SERVICE"
+            docker push "$FULL_IMAGE_NAME"
+          done
 
   test_frontend:
     runs-on: ubuntu-latest

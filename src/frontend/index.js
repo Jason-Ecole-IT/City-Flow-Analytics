@@ -1,3 +1,7 @@
+require('dotenv').config({
+  path: require('path').resolve(__dirname, '../../.env')
+});
+
 const express = require('express');
 const path = require('path');
 
@@ -5,25 +9,12 @@ const path = require('path');
 const fetch = global.fetch || ((...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args)));
 
 const app = express();
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
+
+const ORS_API_KEY = process.env.ORS_API_KEY;
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
-
-// Proxy endpoint to reach the ingestion service from the frontend container.
-// Use environment variable INGESTION_API_URL (e.g. http://ingestion:8080) when running in Docker.
-const INGESTION_API_URL = process.env.INGESTION_API_URL || 'http://localhost:8080';
-
-app.get('/api/processed/latest', async (req, res) => {
-  try {
-    const upstream = `${INGESTION_API_URL}/processed/latest`;
-    const r = await fetch(upstream);
-    const text = await r.text();
-    res.status(r.status).set('Content-Type', r.headers.get('content-type') || 'application/json').send(text);
-  } catch (err) {
-    res.status(502).json({ error: 'failed to proxy to ingestion API', detail: err.message });
-  }
-});
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);

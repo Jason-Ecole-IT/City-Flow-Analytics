@@ -1,29 +1,26 @@
+# Stage build
 FROM golang:1.23-alpine AS builder
-
 WORKDIR /app
 
-# Copy go.mod and go.sum if they exist
-COPY go.mod ./
-RUN if [ -f go.sum ]; then cp go.sum ./; fi
+# Copy dependencies
+COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy all source files
+# Copy all source
 COPY . .
 
-# Build the application
+# Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ingestion-service main.go db.go processor.go
 
-# Final stage: use minimal base image
+# Final minimal image
 FROM alpine:latest
-
 WORKDIR /app
 COPY --from=builder /app/ingestion-service .
 
-# Add ca-certificates for HTTPS connections if needed
 RUN apk --no-cache add ca-certificates
 
-# Health check (optional)
+# Optional healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD echo "Health check would go here"
+    CMD ./ingestion-service --health || exit 1
 
 CMD ["./ingestion-service"]

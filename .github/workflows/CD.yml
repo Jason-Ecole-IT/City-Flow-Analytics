@@ -46,24 +46,18 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
             set -e
+
             cd ~/cityflow
-
-            echo "Listing files in ~/cityflow..."
-            ls -lah
-
-            if [ ! -f docker_images.tar.gz ]; then
-              echo "ERROR: docker_images.tar.gz not found!"
-              exit 1
-            fi
 
             echo "Extracting Docker images..."
             mkdir -p docker_images
             tar xzf docker_images.tar.gz -C docker_images
 
+            # --- Charger les fichiers .tar dans le sous-dossier docker_images/docker_images ---
             shopt -s nullglob
-            TAR_FILES=(docker_images/*.tar)
+            TAR_FILES=(docker_images/docker_images/*.tar)
             if [ ${#TAR_FILES[@]} -eq 0 ]; then
-              echo "ERROR: No .tar files found in docker_images!"
+              echo "ERROR: No .tar files found in docker_images/docker_images!"
               exit 1
             fi
 
@@ -72,8 +66,8 @@ jobs:
               docker load -i "$IMAGE"
             done
 
-            # Cleanup archive
-            rm -rf docker_images.tar.gz
+            # Cleanup
+            rm -rf docker_images docker_images.tar.gz
 
             echo "Generating .env file from secrets..."
             cat <<EOF > .env

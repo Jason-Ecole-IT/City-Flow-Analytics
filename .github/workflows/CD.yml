@@ -17,25 +17,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --- Build & archive all Docker images on CI runner ---
-      - name: Build Docker images
-        run: |
-          mkdir -p docker_images
-          SERVICES=("src/services/ingestion" "src/frontend" "src/iot-simulator" "src/mosquitto")
-          
-          for SERVICE in "${SERVICES[@]}"; do
-            IMAGE_NAME=$(basename $SERVICE)
-            echo "Building $IMAGE_NAME..."
-            docker build -t $IMAGE_NAME:latest $SERVICE
-            docker save $IMAGE_NAME:latest > docker_images/$IMAGE_NAME.tar
-          done
-
-          echo "Creating archive..."
-          tar -czf docker_images.tar.gz docker_images
-
-          echo "CI workspace content:"
-          ls -lah
-
       # --- Copy Docker images + docker-compose + init.sql to VM ---
       - name: Copy deployment files to VM
         uses: appleboy/scp-action@v0.1.5
@@ -65,7 +46,6 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
             set -e
-
             cd ~/cityflow
 
             echo "Listing files in ~/cityflow..."
@@ -92,8 +72,8 @@ jobs:
               docker load -i "$IMAGE"
             done
 
-            # Cleanup
-            rm -rf docker_images docker_images.tar.gz
+            # Cleanup archive
+            rm -rf docker_images.tar.gz
 
             echo "Generating .env file from secrets..."
             cat <<EOF > .env

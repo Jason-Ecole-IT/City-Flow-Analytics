@@ -45,7 +45,16 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           source: "docker_images.tar.gz,docker-compose.yml,init.sql"
           target: "~/cityflow/"
-          tar: false   # <-- IMPORTANT : ne pas décompresser automatiquement
+
+      - name: Verify files on VM
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            echo "Listing files in ~/cityflow..."
+            ls -lah ~/cityflow
 
       # --- Deploy on VM ---
       - name: Load images, generate .env and start stack

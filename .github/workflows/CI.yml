@@ -14,17 +14,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build Docker images
+      - name: Build & archive Docker images
         run: |
+          mkdir -p docker_images
           SERVICES=("src/services/ingestion" "src/frontend" "src/iot-simulator" "src/mosquitto")
+          
           for SERVICE in "${SERVICES[@]}"; do
             IMAGE_NAME=$(basename $SERVICE)
             echo "Building $IMAGE_NAME..."
             docker build -t $IMAGE_NAME:latest $SERVICE
+            echo "Saving image $IMAGE_NAME..."
+            docker save $IMAGE_NAME:latest > docker_images/$IMAGE_NAME.tar
           done
 
-      - name: List Docker images
-        run: docker images
+          echo "Creating archive..."
+          tar -czf docker_images.tar.gz docker_images
+          ls -lah docker_images
+          ls -lah
+
 
   test_frontend:
     runs-on: ubuntu-latest

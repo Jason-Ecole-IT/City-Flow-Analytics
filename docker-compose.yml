@@ -109,7 +109,7 @@ services:
       - city-flow
 
   sensor3:
-    image: iot-simulator:latest
+    image: ghcr.io/jason-ecole-it/iot-simulator:latest
     container_name: sensor3
     command: ["python", "sensor3.py"]
     env_file: .env

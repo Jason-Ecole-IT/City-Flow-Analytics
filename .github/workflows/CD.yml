@@ -1,6 +1,5 @@
 name: CD - Deploy Docker Images to VM (Single Archive)
 
-# Déclenche uniquement après un workflow CI réussi sur la branche main
 on:
   workflow_run:
     workflows: ["CI - Build & Test All Components"]
@@ -19,7 +18,7 @@ jobs:
       - name: Build Docker images and archive
         run: |
           mkdir -p docker_images
-          SERVICES=("src/services/ingestion" "src/frontend" "src/iot-simulator")
+          SERVICES=("src/services/ingestion" "src/frontend" "src/iot-simulator" "src/mosquitto")
           for SERVICE in "${SERVICES[@]}"; do
             IMAGE_NAME=$(basename $SERVICE)
             echo "Building $IMAGE_NAME..."
@@ -31,7 +30,7 @@ jobs:
       - name: Fix permissions for archive
         run: chmod 600 docker_images.tar.gz
 
-      - name: Copy Docker images archive and docker-compose.yml to VM
+      - name: Copy Docker images and docker-compose.yml to VM
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa
@@ -43,7 +42,7 @@ jobs:
           # Copie l'archive Docker images
           scp -o StrictHostKeyChecking=no docker_images.tar.gz ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/cityflow/
 
-          # Copie le docker-compose.yml
+          # Copie le docker-compose.yml corrigé
           scp -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/cityflow/
 
       - name: Load Docker images and deploy with docker-compose
@@ -52,18 +51,18 @@ jobs:
           echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} "
             cd ~/cityflow
 
             # Décompresse et charge les images Docker locales
             mkdir -p docker_images
             tar xzf docker_images.tar.gz -C docker_images
             for IMAGE in docker_images/*.tar; do
-              docker load -i "$IMAGE"
+              docker load -i \$IMAGE
             done
             rm -rf docker_images docker_images.tar.gz
 
             # Déploie les conteneurs avec docker-compose
             docker-compose down
             docker-compose up -d
-            EOF
+          "

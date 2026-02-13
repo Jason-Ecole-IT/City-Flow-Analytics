@@ -1,6 +1,6 @@
 services:
   ingestion:
-    build: ./src/services/ingestion
+    image: ingestion:latest
     container_name: ingestion
     env_file:
       - .env
@@ -14,7 +14,7 @@ services:
       - city-flow
 
   frontend:
-    build: ./src/frontend
+    image: frontend:latest
     container_name: frontend
     ports:
       - "4000:4000"
@@ -23,7 +23,7 @@ services:
       - city-flow
 
   mosquitto:
-    build: ./src/mosquitto
+    image: mosquitto:latest
     container_name: mosquitto
     ports:
       - "1883:1883"
@@ -52,7 +52,7 @@ services:
       - city-flow
 
   subscriber:
-    build: ./src/iot-simulator
+    image: iot-simulator:latest
     container_name: subscriber
     env_file:
       - .env
@@ -69,7 +69,7 @@ services:
       - city-flow
 
   sensor:
-    build: ./src/iot-simulator
+    image: iot-simulator:latest
     container_name: sensor
     command: ["python", "sensor.py"]
     env_file:

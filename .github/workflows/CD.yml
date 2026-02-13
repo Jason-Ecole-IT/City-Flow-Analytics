@@ -10,15 +10,11 @@ jobs:
     if: >
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_branch == 'main'
-
     runs-on: self-hosted
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # --- Build & archive all Docker images on CI runner ---
-      - name: Build Docker images
+      - name: Build Docker images (CI runner)
         run: |
           mkdir -p docker_images
           SERVICES=("src/services/ingestion" "src/frontend" "src/iot-simulator" "src/mosquitto")
@@ -30,13 +26,9 @@ jobs:
             docker save $IMAGE_NAME:latest > docker_images/$IMAGE_NAME.tar
           done
 
-          echo "Creating archive..."
           tar -czf docker_images.tar.gz docker_images
-
-          echo "CI workspace content:"
           ls -lah
 
-      # --- Copy Docker images + docker-compose + init.sql to VM ---
       - name: Copy deployment files to VM
         uses: appleboy/scp-action@v0.1.5
         with:
@@ -46,8 +38,7 @@ jobs:
           source: "docker_images.tar.gz,docker-compose.yml,init.sql"
           target: "~/cityflow/"
 
-      # --- Deploy on VM ---
-      - name: Load images, generate .env and start stack
+      - name: Load images, generate .env, and start stack
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VM_HOST }}
@@ -55,7 +46,6 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
             set -e
-
             cd ~/cityflow
 
             echo "Extracting Docker images..."
@@ -69,7 +59,7 @@ jobs:
 
             rm -rf docker_images docker_images.tar.gz
 
-            echo "Generating .env file from secrets..."
+            echo "Generating .env file..."
             cat <<EOF > .env
             MQTT_BROKER=${{ secrets.MQTT_BROKER }}
             MQTT_PORT=${{ secrets.MQTT_PORT }}
@@ -81,10 +71,7 @@ jobs:
             DB_NAME=${{ secrets.DB_NAME }}
             EOF
 
-            echo "Stopping previous stack (if any)..."
+            echo "Restarting stack..."
             docker-compose down || true
-
-            echo "Starting new stack with prebuilt images..."
             docker-compose up -d
-
             echo "Deployment complete!"

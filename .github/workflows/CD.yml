@@ -27,10 +27,15 @@ jobs:
             IMAGE_NAME=$(basename $SERVICE)
             echo "Building $IMAGE_NAME..."
             docker build -t $IMAGE_NAME:latest $SERVICE
-            docker save -o docker_images/$IMAGE_NAME.tar $IMAGE_NAME:latest
+            docker save $IMAGE_NAME:latest > docker_images/$IMAGE_NAME.tar
           done
 
-          tar czf docker_images.tar.gz -C docker_images .
+          echo "Creating archive..."
+          tar -czf docker_images.tar.gz docker_images
+
+          echo "Workspace content:"
+          ls -lah
+
 
       # --- Copy files to VM ---
       - name: Copy deployment files
@@ -39,11 +44,8 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
-          source: |
-            docker_images.tar.gz
-            docker-compose.yml
-            init.sql
-          target: ~/cityflow/
+          source: "docker_images.tar.gz,docker-compose.yml,init.sql"
+          target: "~/cityflow/"
 
       # --- Deploy on VM ---
       - name: Deploy on VM

@@ -45,6 +45,7 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           source: "docker_images.tar.gz,docker-compose.yml,init.sql"
           target: "~/cityflow/"
+          tar: false   # <-- IMPORTANT : ne pas décompresser automatiquement
 
       # --- Deploy on VM ---
       - name: Load images, generate .env and start stack
@@ -70,7 +71,6 @@ jobs:
             mkdir -p docker_images
             tar xzf docker_images.tar.gz -C docker_images
 
-            # --- Correct glob handling ---
             shopt -s nullglob
             TAR_FILES=(docker_images/*.tar)
             if [ ${#TAR_FILES[@]} -eq 0 ]; then

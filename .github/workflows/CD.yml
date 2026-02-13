@@ -10,40 +10,22 @@ jobs:
     if: >
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_branch == 'main'
-
     runs-on: self-hosted
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download artifact from CI
-        uses: actions/download-artifact@v4
-        with:
-          name: docker-images-package
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Verify docker_images.tar.gz exists
-        run: |
-          ls -lah docker_images.tar.gz
-          if [ ! -f docker_images.tar.gz ]; then
-            echo "ERROR: docker_images.tar.gz missing!"
-            exit 1
-          fi
-
-      - name: Copy deployment files to VM
+      - name: Copy config files to VM
         uses: appleboy/scp-action@v0.1.5
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
-          # Note: On utilise les noms de fichiers directs car download-artifact les place à la racine
-          source: "docker_images.tar.gz,docker-compose.yml,init.sql"
+          source: "docker-compose.yml,init.sql"
           target: "~/cityflow/"
-          rm: false
 
-      - name: Load Docker images and deploy stack
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VM_HOST }}
@@ -52,19 +34,11 @@ jobs:
           script: |
             set -e
             cd ~/cityflow
+            
+            # Login à GHCR sur la VM
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            echo "Extracting Docker images..."
-            rm -rf docker_images && mkdir -p docker_images
-            tar xzf docker_images.tar.gz -C docker_images
-
-            shopt -s nullglob
-            TAR_FILES=(docker_images/*.tar)
-            for IMAGE in "${TAR_FILES[@]}"; do
-              echo "Loading Docker image $IMAGE..."
-              docker load -i "$IMAGE"
-            done
-
-            echo "Generating .env file..."
+            # Génération du .env
             cat <<EOF > .env
             MQTT_BROKER=${{ secrets.MQTT_BROKER }}
             MQTT_PORT=${{ secrets.MQTT_PORT }}
@@ -75,7 +49,12 @@ jobs:
             DB_NAME=${{ secrets.DB_NAME }}
             EOF
 
+            echo "Pulling latest images from GHCR..."
+            docker-compose pull
+
             echo "Restarting stack..."
-            docker-compose down --volumes --remove-orphans || true
             docker-compose up -d --remove-orphans
-            docker ps
+            
+            # Nettoyage des vieilles images pour gagner de l'espace
+            docker image prune -f
+            echo "Deployment successful!"

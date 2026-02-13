@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   ingestion:
-    image: ingestion:latest
+    image: ghcr.io/jason-ecole-it/ingestion:latest
     container_name: ingestion
     env_file: .env
     environment:
@@ -20,7 +20,7 @@ services:
       - city-flow
 
   frontend:
-    image: frontend:latest
+    image: ghcr.io/jason-ecole-it/frontend:latest
     container_name: frontend
     ports:
       - "4000:4000"
@@ -31,7 +31,7 @@ services:
       - city-flow
 
   mosquitto:
-    image: mosquitto:latest
+    image: ghcr.io/jason-ecole-it/mosquitto:latest
     container_name: mosquitto
     ports:
       - "1883:1883"
@@ -61,7 +61,7 @@ services:
       - city-flow
 
   subscriber:
-    image: iot-simulator:latest
+    image: ghcr.io/jason-ecole-it/iot-simulator:latest
     container_name: subscriber
     env_file: .env
     environment:
@@ -76,8 +76,9 @@ services:
     networks:
       - city-flow
 
+  # Exemple pour sensor1 (à appliquer de sensor1 à sensor19)
   sensor1:
-    image: iot-simulator:latest
+    image: ghcr.io/jason-ecole-it/iot-simulator:latest
     container_name: sensor1
     command: ["python", "sensor1.py"]
     env_file: .env
@@ -90,8 +91,11 @@ services:
     networks:
       - city-flow
 
+  # ... Applique le même changement d'image pour sensor2 à sensor19 ...
+  # image: ghcr.io/jason-ecole-it/iot-simulator:latest
+
   sensor2:
-    image: iot-simulator:latest
+    image: ghcr.io/jason-ecole-it/iot-simulator:latest
     container_name: sensor2
     command: ["python", "sensor2.py"]
     env_file: .env
@@ -119,7 +123,7 @@ services:
       - city-flow
 
   sensor4:
-    image: iot-simulator:latest
+    image: ghcr.io/jason-ecole-it/iot-simulator:latest
     container_name: sensor4
     command: ["python", "sensor4.py"]
     env_file: .env
@@ -133,7 +137,7 @@ services:
       - city-flow
 
   sensor5:
-    image: iot-simulator:latest
+    image: ghcr.io/jason-ecole-it/iot-simulator:latest
     container_name: sensor5
     command: ["python", "sensor5.py"]
     env_file: .env
@@ -148,7 +152,7 @@ services:
 
   # … répéter pour sensor6 à sensor19 de la même façon
   sensor6:
-    image: iot-simulator:latest
+    image: ghcr.io/jason-ecole-it/iot-simulator:latest
     container_name: sensor6
     command: ["python", "sensor6.py"]
     env_file: .env
@@ -162,7 +166,7 @@ services:
       - city-flow
 
   sensor7:
-    image: iot-simulator:latest
+    image: ghcr.io/jason-ecole-it/iot-simulator:latest
     container_name: sensor7
     command: ["python", "sensor7.py"]
     env_file: .env
@@ -176,7 +180,7 @@ services:
       - city-flow
 
   sensor8:
-    image: iot-simulator:latest
+    image: ghcr.io/jason-ecole-it/iot-simulator:latest
     container_name: sensor8
     command: ["python", "sensor8.py"]
     env_file: .env
@@ -190,7 +194,7 @@ services:
       - city-flow
 
   sensor9:
-    image: iot-simulator:latest
+    image: ghcr.io/jason-ecole-it/iot-simulator:latest
     container_name: sensor9
     command: ["python", "sensor9.py"]
     env_file: .env
@@ -204,7 +208,7 @@ services:
       - city-flow
 
   sensor10:
-    image: iot-simulator:latest
+    image: ghcr.io/jason-ecole-it/iot-simulator:latest
     container_name: sensor10
     command: ["python", "sensor10.py"]
     env_file: .env
@@ -218,7 +222,7 @@ services:
       - city-flow
 
   sensor11:
-    image: iot-simulator:latest
+    image: ghcr.io/jason-ecole-it/iot-simulator:latest
     container_name: sensor11
     command: ["python", "sensor11.py"]
     env_file: .env
@@ -232,7 +236,7 @@ services:
       - city-flow
 
   sensor12:
-    image: iot-simulator:latest
+    image: ghcr.io/jason-ecole-it/iot-simulator:latest
     container_name: sensor12
     command: ["python", "sensor12.py"]
     env_file: .env
@@ -245,7 +249,7 @@ services:
     networks:
       - city-flow
   sensor13:
-    image: iot-simulator:latest
+    image: ghcr.io/jason-ecole-it/iot-simulator:latest
     container_name: sensor13
     command: ["python", "sensor13.py"]
     env_file: .env
@@ -258,7 +262,7 @@ services:
     networks:
       - city-flow
   sensor14:
-    image: iot-simulator:latest
+    image: ghcr.io/jason-ecole-it/iot-simulator:latest
     container_name: sensor14
     command: ["python", "sensor14.py"]
     env_file: .env
@@ -271,7 +275,7 @@ services:
     networks:
       - city-flow
   sensor15:
-    image: iot-simulator:latest
+    image: ghcr.io/jason-ecole-it/iot-simulator:latest
     container_name: sensor15
     command: ["python", "sensor15.py"]
     env_file: .env
@@ -284,7 +288,7 @@ services:
     networks:
       - city-flow
   sensor16:
-    image: iot-simulator:latest
+    image: ghcr.io/jason-ecole-it/iot-simulator:latest
     container_name: sensor16
     command: ["python", "sensor16.py"]
     env_file: .env
@@ -297,7 +301,7 @@ services:
     networks:
       - city-flow
   sensor17:
-    image: iot-simulator:latest
+    image: ghcr.io/jason-ecole-it/iot-simulator:latest
     container_name: sensor17
     command: ["python", "sensor17.py"]
     env_file: .env
@@ -310,7 +314,7 @@ services:
     networks:
       - city-flow
   sensor18:
-    image: iot-simulator:latest
+    image: ghcr.io/jason-ecole-it/iot-simulator:latest
     container_name: sensor18
     command: ["python", "sensor18.py"]
     env_file: .env
@@ -323,7 +327,7 @@ services:
     networks:
       - city-flow
   sensor19:
-    image: iot-simulator:latest
+    image: ghcr.io/jason-ecole-it/iot-simulator:latest
     container_name: sensor19
     command: ["python", "sensor19.py"]
     env_file: .env

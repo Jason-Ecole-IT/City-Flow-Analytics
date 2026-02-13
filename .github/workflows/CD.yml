@@ -1,4 +1,4 @@
-name: CD - Deploy Docker Images to VM (Single Archive)
+name: CD - Deploy Frontend Only
 
 on:
   workflow_run:
@@ -15,37 +15,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build Docker images and archive
+      - name: Build frontend image and archive
         run: |
+          docker build -t frontend:latest src/frontend
           mkdir -p docker_images
-          SERVICES=("src/services/ingestion" "src/frontend" "src/iot-simulator" "src/mosquitto")
-          for SERVICE in "${SERVICES[@]}"; do
-            IMAGE_NAME=$(basename $SERVICE)
-            echo "Building $IMAGE_NAME..."
-            docker build -t $IMAGE_NAME:latest $SERVICE
-            docker save -o docker_images/$IMAGE_NAME.tar $IMAGE_NAME:latest
-          done
+          docker save -o docker_images/frontend.tar frontend:latest
           tar czf docker_images.tar.gz -C docker_images .
 
       - name: Fix permissions for archive
         run: chmod 600 docker_images.tar.gz
 
-      - name: Copy Docker images and docker-compose.yml to VM
+      - name: Copy Docker image and docker-compose.yml to VM
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-          # Crée le répertoire cityflow sur la VM
           ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} "mkdir -p ~/cityflow"
 
-          # Copie l'archive Docker images
           scp -o StrictHostKeyChecking=no docker_images.tar.gz ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/cityflow/
-
-          # Copie le docker-compose.yml corrigé
           scp -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/cityflow/
 
-      - name: Load Docker images and deploy with docker-compose
+      - name: Load Docker image and deploy frontend
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa
@@ -54,15 +45,11 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} "
             cd ~/cityflow
 
-            # Décompresse et charge les images Docker locales
             mkdir -p docker_images
             tar xzf docker_images.tar.gz -C docker_images
-            for IMAGE in docker_images/*.tar; do
-              docker load -i \$IMAGE
-            done
+            docker load -i docker_images/frontend.tar
             rm -rf docker_images docker_images.tar.gz
 
-            # Déploie les conteneurs avec docker-compose
             docker-compose down
             docker-compose up -d
           "

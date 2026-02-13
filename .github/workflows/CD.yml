@@ -33,7 +33,7 @@ jobs:
         run: chmod 777 docker_images.tar.gz
 
       - name: Copy Docker images archive to VM
-        uses: appleboy/scp-action@v0.1.5
+        uses: appleboy/scp-action@v0.1.6
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}

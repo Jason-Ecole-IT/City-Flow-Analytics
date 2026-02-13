@@ -9,7 +9,6 @@ on:
 
 jobs:
   deploy:
-    # Ne s'exécute que si le workflow CI a réussi
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: self-hosted
 
@@ -55,7 +54,7 @@ jobs:
             done
             rm -rf docker_images docker_images.tar.gz
 
-            # Déploie avec docker-compose en utilisant uniquement les images locales
+            # Déploie avec docker-compose en construisant uniquement à partir des images locales
             docker-compose down
-            docker-compose up -d --no-build --no-pull
+            docker-compose up -d
           EOF

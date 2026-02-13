@@ -2,23 +2,19 @@ name: CI - Build & Test All Components
 
 on:
   push:
-    branches:
-      - dev
-      - main
+    branches: [dev, main]
   pull_request:
 
 jobs:
   build_all:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Build Docker images
         run: |
           mkdir -p docker_images
           SERVICES=("src/services/ingestion" "src/frontend" "src/iot-simulator" "src/mosquitto")
-          
           for SERVICE in "${SERVICES[@]}"; do
             IMAGE_NAME=$(basename $SERVICE)
             echo "Building $IMAGE_NAME..."
@@ -26,11 +22,8 @@ jobs:
             docker save $IMAGE_NAME:latest > docker_images/$IMAGE_NAME.tar
           done
 
-      - name: Create archive
-        run: tar -czf docker_images.tar.gz docker_images
+          # Créer l'archive au même niveau que docker_images
+          tar -czf docker_images.tar.gz -C docker_images .
 
-      - name: List Docker images and archive
-        run: |
-          docker images
-          ls -lah docker_images
-          ls -lah docker_images.tar.gz
+          echo "CI workspace content:"
+          ls -lah

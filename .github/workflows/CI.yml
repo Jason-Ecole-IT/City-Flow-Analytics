@@ -22,7 +22,7 @@ jobs:
             docker save $IMAGE_NAME:latest > docker_images/$IMAGE_NAME.tar
           done
 
-          # Créer l'archive au même niveau que docker_images
+          # Créer l'archive contenant tous les .tar
           tar -czf docker_images.tar.gz -C docker_images .
 
           echo "CI workspace content:"

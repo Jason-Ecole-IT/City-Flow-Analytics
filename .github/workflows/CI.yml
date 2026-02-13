@@ -22,11 +22,14 @@ jobs:
             docker save $IMAGE_NAME:latest > docker_images/$IMAGE_NAME.tar
           done
 
-          # Créer l'archive au même niveau que docker_images
+          echo "Creating docker_images.tar.gz archive..."
+          # Crée l'archive dans le workspace, pas dans docker_images/
           tar -czf docker_images.tar.gz -C docker_images .
 
           echo "CI workspace content:"
           ls -lah
+          echo "docker_images directory content:"
+          ls -lah docker_images
 
   test_frontend:
     runs-on: ubuntu-latest

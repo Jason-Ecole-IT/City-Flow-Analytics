@@ -10,31 +10,35 @@ jobs:
     if: >
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_branch == 'main'
+
     runs-on: self-hosted
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --- Vérifier que le fichier tar existe dans le CI workspace ---
+      # --- Verify archive exists locally ---
       - name: Verify docker_images.tar.gz exists
-        run: ls -lah docker_images.tar.gz
+        run: |
+          echo "Listing CI workspace files..."
+          ls -lah ./docker_images.tar.gz
+          if [ ! -f ./docker_images.tar.gz ]; then
+            echo "ERROR: docker_images.tar.gz missing!"
+            exit 1
+          fi
 
-      # --- Copier Docker images + docker-compose + init.sql vers la VM ---
+      # --- Copy Docker images + docker-compose + init.sql to VM ---
       - name: Copy deployment files to VM
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v0.1.5
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
-          source: |
-            docker_images.tar.gz
-            docker-compose.yml
-            init.sql
+          source: "docker_images.tar.gz,docker-compose.yml,init.sql"
           target: "~/cityflow/"
-          rm: false
+          rm: false    # <-- garder le tar sur la VM
 
-      # --- Vérifier que les fichiers ont bien été copiés ---
+      # --- Verify files on VM ---
       - name: Verify files on VM
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -49,8 +53,8 @@ jobs:
               exit 1
             fi
 
-      # --- Charger les images Docker et démarrer le stack ---
-      - name: Load Docker images, cleanup and start stack
+      # --- Load Docker images, cleanup and start stack ---
+      - name: Load Docker images and deploy stack
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VM_HOST }}
@@ -76,11 +80,11 @@ jobs:
               docker load -i "$IMAGE"
             done
 
-            # Cleanup previous containers, networks, volumes
+            echo "Cleaning up previous containers and volumes..."
             docker-compose down --volumes --remove-orphans || true
             docker rm -f $(docker ps -aq) || true
 
-            # Free common ports if in use (ports selon ton docker-compose)
+            # Free common ports if in use (update ports according to docker-compose)
             for PORT in 1883 8080 5432; do
               if lsof -i :$PORT; then
                 echo "Port $PORT is in use, freeing it..."
@@ -88,7 +92,8 @@ jobs:
               fi
             done
 
-            # Generate .env file from secrets
+            # Generate .env from secrets
+            echo "Generating .env file from secrets..."
             cat <<EOF > .env
             MQTT_BROKER=${{ secrets.MQTT_BROKER }}
             MQTT_PORT=${{ secrets.MQTT_PORT }}
@@ -100,7 +105,6 @@ jobs:
             DB_NAME=${{ secrets.DB_NAME }}
             EOF
 
-            # Start stack
             echo "Starting new stack with prebuilt images..."
             docker-compose up -d --remove-orphans
             echo "Listing running containers..."

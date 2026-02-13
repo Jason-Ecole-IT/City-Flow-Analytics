@@ -38,7 +38,7 @@ jobs:
             ls -lah ~/cityflow
 
       # --- Deploy on VM ---
-      - name: Load images, generate .env and start stack
+      - name: Load images, cleanup and start stack
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VM_HOST }}
@@ -46,14 +46,13 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
             set -e
-
             cd ~/cityflow
 
             echo "Extracting Docker images..."
             mkdir -p docker_images
             tar xzf docker_images.tar.gz -C docker_images
 
-            # --- Charger les fichiers .tar dans le sous-dossier docker_images/docker_images ---
+            # --- Charger les fichiers .tar dans docker_images/docker_images ---
             shopt -s nullglob
             TAR_FILES=(docker_images/docker_images/*.tar)
             if [ ${#TAR_FILES[@]} -eq 0 ]; then
@@ -66,9 +65,20 @@ jobs:
               docker load -i "$IMAGE"
             done
 
-            # Cleanup
-            rm -rf docker_images docker_images.tar.gz
+            # --- Cleanup previous containers, networks, volumes ---
+            echo "Cleaning up previous containers..."
+            docker-compose down --volumes --remove-orphans || true
+            docker rm -f $(docker ps -aq) || true
 
+            # --- Free common ports if in use (update ports according to your docker-compose) ---
+            for PORT in 1883 8080 5432; do
+              if lsof -i :$PORT; then
+                echo "Port $PORT is in use, freeing it..."
+                sudo fuser -k $PORT/tcp
+              fi
+            done
+
+            # --- Generate .env file ---
             echo "Generating .env file from secrets..."
             cat <<EOF > .env
             MQTT_BROKER=${{ secrets.MQTT_BROKER }}
@@ -81,9 +91,7 @@ jobs:
             DB_NAME=${{ secrets.DB_NAME }}
             EOF
 
-            echo "Stopping previous stack (if any)..."
-            docker-compose down || true
-
+            # --- Start stack ---
             echo "Starting new stack with prebuilt images..."
             docker-compose up -d --remove-orphans
 

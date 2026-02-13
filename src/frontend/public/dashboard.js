@@ -14,8 +14,8 @@ const sensorValues = {};
 // Helper: fetch processed_data from ingestion API and update `sensorValues`
 async function pollProcessedData() {
   try {
-    // Try several endpoints to support cross-container and proxied setups
-    const endpoints = ['/api/processed/latest', 'http://ingestion:8080/processed/latest', 'http://localhost:8080/processed/latest'];
+    // Try the proxied endpoint (works in Docker and local)
+    const endpoints = ['/api/processed/latest'];
     let res = null;
     let data = null;
     for (const ep of endpoints) {

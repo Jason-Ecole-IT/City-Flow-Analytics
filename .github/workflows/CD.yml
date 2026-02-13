@@ -46,12 +46,16 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
             cd ~/cityflow
+
+            # Décompresse et charge les images Docker locales
             mkdir -p docker_images
             tar xzf docker_images.tar.gz -C docker_images
             for IMAGE in docker_images/*.tar; do
               docker load -i "$IMAGE"
             done
             rm -rf docker_images docker_images.tar.gz
+
+            # Déploie avec docker-compose en utilisant uniquement les images locales
             docker-compose down
-            docker-compose up -d
+            docker-compose up -d --no-build --no-pull
           EOF

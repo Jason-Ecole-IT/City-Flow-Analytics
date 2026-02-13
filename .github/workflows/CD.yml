@@ -13,11 +13,16 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # --- Copier les fichiers sur la VM ---
+      # --- Vérifier que le fichier tar existe dans le CI workspace ---
+      - name: Verify docker_images.tar.gz exists
+        run: ls -lah docker_images.tar.gz
+
+      # --- Copier Docker images + docker-compose + init.sql vers la VM ---
       - name: Copy deployment files to VM
-        uses: appleboy/scp-action@v0.1.6
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
@@ -29,6 +34,7 @@ jobs:
           target: "~/cityflow/"
           rm: false
 
+      # --- Vérifier que les fichiers ont bien été copiés ---
       - name: Verify files on VM
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -36,10 +42,14 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            echo "Listing files in ~/cityflow..."
+            echo "Listing ~/cityflow contents..."
             ls -lah ~/cityflow
+            if [ ! -f ~/cityflow/docker_images.tar.gz ]; then
+              echo "ERROR: docker_images.tar.gz missing on VM!"
+              exit 1
+            fi
 
-      # --- Déploiement Docker ---
+      # --- Charger les images Docker et démarrer le stack ---
       - name: Load Docker images, cleanup and start stack
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -66,11 +76,11 @@ jobs:
               docker load -i "$IMAGE"
             done
 
-            echo "Cleaning up previous containers..."
+            # Cleanup previous containers, networks, volumes
             docker-compose down --volumes --remove-orphans || true
-            docker rm -f $(docker ps -aq) || true || true
+            docker rm -f $(docker ps -aq) || true
 
-            # Free common ports if in use (mettre à jour selon docker-compose)
+            # Free common ports if in use (ports selon ton docker-compose)
             for PORT in 1883 8080 5432; do
               if lsof -i :$PORT; then
                 echo "Port $PORT is in use, freeing it..."
@@ -78,7 +88,7 @@ jobs:
               fi
             done
 
-            # Generate .env
+            # Generate .env file from secrets
             cat <<EOF > .env
             MQTT_BROKER=${{ secrets.MQTT_BROKER }}
             MQTT_PORT=${{ secrets.MQTT_PORT }}
@@ -90,7 +100,9 @@ jobs:
             DB_NAME=${{ secrets.DB_NAME }}
             EOF
 
+            # Start stack
             echo "Starting new stack with prebuilt images..."
             docker-compose up -d --remove-orphans
+            echo "Listing running containers..."
             docker ps
             echo "Deployment complete!"

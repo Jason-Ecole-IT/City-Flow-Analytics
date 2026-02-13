@@ -10,11 +10,15 @@ jobs:
     if: >
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_branch == 'main'
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: Build Docker images (CI runner)
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # --- Build & archive all Docker images on CI runner ---
+      - name: Build Docker images
         run: |
           mkdir -p docker_images
           SERVICES=("src/services/ingestion" "src/frontend" "src/iot-simulator" "src/mosquitto")
@@ -26,9 +30,13 @@ jobs:
             docker save $IMAGE_NAME:latest > docker_images/$IMAGE_NAME.tar
           done
 
+          echo "Creating archive..."
           tar -czf docker_images.tar.gz docker_images
+
+          echo "CI workspace content:"
           ls -lah
 
+      # --- Copy Docker images + docker-compose + init.sql to VM ---
       - name: Copy deployment files to VM
         uses: appleboy/scp-action@v0.1.5
         with:
@@ -38,7 +46,8 @@ jobs:
           source: "docker_images.tar.gz,docker-compose.yml,init.sql"
           target: "~/cityflow/"
 
-      - name: Load images, generate .env, and start stack
+      # --- Deploy on VM ---
+      - name: Load images, generate .env and start stack
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VM_HOST }}
@@ -46,24 +55,38 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
             set -e
+
             cd ~/cityflow
+
+            echo "Listing files in ~/cityflow..."
+            ls -lah
+
+            if [ ! -f docker_images.tar.gz ]; then
+              echo "ERROR: docker_images.tar.gz not found!"
+              exit 1
+            fi
 
             echo "Extracting Docker images..."
             mkdir -p docker_images
             tar xzf docker_images.tar.gz -C docker_images
 
+            if [ ! "$(ls -A docker_images)" ]; then
+              echo "ERROR: No .tar files found in docker_images!"
+              exit 1
+            fi
+
             for IMAGE in docker_images/*.tar; do
-              echo "Loading $IMAGE..."
+              echo "Loading Docker image $IMAGE..."
               docker load -i $IMAGE
             done
 
             rm -rf docker_images docker_images.tar.gz
 
-            echo "Generating .env file..."
+            echo "Generating .env file from secrets..."
             cat <<EOF > .env
             MQTT_BROKER=${{ secrets.MQTT_BROKER }}
             MQTT_PORT=${{ secrets.MQTT_PORT }}
-
+            
             DB_HOST=timescaledb
             DB_PORT=${{ secrets.DB_PORT }}
             DB_USER=${{ secrets.DB_USER }}
@@ -71,7 +94,13 @@ jobs:
             DB_NAME=${{ secrets.DB_NAME }}
             EOF
 
-            echo "Restarting stack..."
+            echo "Stopping previous stack (if any)..."
             docker-compose down || true
-            docker-compose up -d
+
+            echo "Starting new stack with prebuilt images..."
+            docker-compose up -d --remove-orphans
+
+            echo "Listing running containers..."
+            docker ps
+
             echo "Deployment complete!"

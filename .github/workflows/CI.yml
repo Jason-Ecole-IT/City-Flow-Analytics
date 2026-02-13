@@ -13,23 +13,14 @@ jobs:
 
       - name: Build Docker images and archive
         run: |
-          set -e
           mkdir -p docker_images
           SERVICES=("src/services/ingestion" "src/frontend" "src/iot-simulator" "src/mosquitto")
-
-          echo "Building Docker images..."
           for SERVICE in "${SERVICES[@]}"; do
             IMAGE_NAME=$(basename $SERVICE)
-            echo "- Building $IMAGE_NAME..."
             docker build -t $IMAGE_NAME:latest $SERVICE
             docker save $IMAGE_NAME:latest > docker_images/$IMAGE_NAME.tar
           done
 
-          echo "Docker images saved:"
-          ls -lah docker_images/
-
-          echo "Creating docker_images.tar.gz archive..."
+          # Copier le tar au workspace root pour la copie
           tar -czf docker_images.tar.gz -C docker_images .
-
-          echo "Archive content:"
-          ls -lah docker_images.tar.gz
+          mv docker_images.tar.gz $GITHUB_WORKSPACE/

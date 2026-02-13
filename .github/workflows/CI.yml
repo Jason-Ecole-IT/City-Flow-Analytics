@@ -21,6 +21,9 @@ jobs:
             docker save $IMAGE_NAME:latest > docker_images/$IMAGE_NAME.tar
           done
 
-          # Copier le tar au workspace root pour la copie
+          # Créer l'archive au workspace root
           tar -czf docker_images.tar.gz -C docker_images .
-          mv docker_images.tar.gz $GITHUB_WORKSPACE/
+
+          echo "CI workspace content:"
+          ls -lah
+

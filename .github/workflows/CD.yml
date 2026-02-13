@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # --- Copier Docker images + docker-compose + init.sql ---
+      # --- Copy files to VM ---
       - name: Copy deployment files to VM
         uses: appleboy/scp-action@v0.1.5
         with:
@@ -25,8 +25,9 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           source: "docker_images.tar.gz,docker-compose.yml,init.sql"
           target: "~/cityflow/"
-          rm: false    # <-- garder le tar sur la VM
+          rm: false   # ne pas supprimer le tar sur la VM
 
+      # --- Verify files on VM ---
       - name: Verify files on VM
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -34,10 +35,16 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            echo "Listing files in ~/cityflow after copy..."
+            echo "Checking ~/cityflow contents..."
             ls -lah ~/cityflow
 
-      - name: Deploy stack
+            if [ ! -f ~/cityflow/docker_images.tar.gz ]; then
+              echo "ERROR: docker_images.tar.gz missing on VM!"
+              exit 1
+            fi
+
+      # --- Deploy stack ---
+      - name: Load Docker images and start stack
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VM_HOST }}
@@ -49,7 +56,7 @@ jobs:
 
             echo "Extracting Docker images..."
             mkdir -p docker_images
-            tar xzf docker_images.tar.gz -C docker_images
+            tar -xzf docker_images.tar.gz -C docker_images
 
             shopt -s nullglob
             TAR_FILES=(docker_images/*.tar)
@@ -58,21 +65,23 @@ jobs:
               exit 1
             fi
 
+            echo "Loading Docker images..."
             for IMAGE in "${TAR_FILES[@]}"; do
-              echo "Loading Docker image $IMAGE..."
               docker load -i "$IMAGE"
             done
 
+            echo "Cleaning up previous containers..."
             docker-compose down --volumes --remove-orphans || true
-            docker rm -f $(docker ps -aq) || true || true
+            docker rm -f $(docker ps -aq) || true
 
+            echo "Freeing ports if in use..."
             for PORT in 1883 8080 5432; do
               if lsof -i :$PORT; then
-                echo "Port $PORT is in use, freeing it..."
-                sudo fuser -k $PORT/tcp
+                sudo fuser -k $PORT/tcp || true
               fi
             done
 
+            echo "Generating .env file..."
             cat <<EOF > .env
             MQTT_BROKER=${{ secrets.MQTT_BROKER }}
             MQTT_PORT=${{ secrets.MQTT_PORT }}
@@ -84,6 +93,10 @@ jobs:
             DB_NAME=${{ secrets.DB_NAME }}
             EOF
 
+            echo "Starting Docker stack..."
             docker-compose up -d --remove-orphans
+
+            echo "Listing running containers..."
             docker ps
+
             echo "Deployment complete!"

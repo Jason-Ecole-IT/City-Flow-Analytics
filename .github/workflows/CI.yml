@@ -11,24 +11,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Docker images
+      - name: Build Docker images and archive
         run: |
+          set -e
           mkdir -p docker_images
           SERVICES=("src/services/ingestion" "src/frontend" "src/iot-simulator" "src/mosquitto")
+
+          echo "Building Docker images..."
           for SERVICE in "${SERVICES[@]}"; do
             IMAGE_NAME=$(basename $SERVICE)
-            echo "Building $IMAGE_NAME..."
+            echo "- Building $IMAGE_NAME..."
             docker build -t $IMAGE_NAME:latest $SERVICE
             docker save $IMAGE_NAME:latest > docker_images/$IMAGE_NAME.tar
           done
 
-          # Vérifier que les .tar existent
           echo "Docker images saved:"
           ls -lah docker_images/
 
-          # Créer l'archive au même niveau que docker_images
+          echo "Creating docker_images.tar.gz archive..."
           tar -czf docker_images.tar.gz -C docker_images .
 
-          # Vérification finale
-          echo "Archive created:"
+          echo "Archive content:"
           ls -lah docker_images.tar.gz

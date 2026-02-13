@@ -13,8 +13,10 @@ jobs:
 
       - name: Build Docker images
         run: |
+          # Crée le dossier pour les images
           mkdir -p docker_images
           SERVICES=("src/services/ingestion" "src/frontend" "src/iot-simulator" "src/mosquitto")
+
           for SERVICE in "${SERVICES[@]}"; do
             IMAGE_NAME=$(basename $SERVICE)
             echo "Building $IMAGE_NAME..."
@@ -22,14 +24,15 @@ jobs:
             docker save $IMAGE_NAME:latest > docker_images/$IMAGE_NAME.tar
           done
 
+          # Crée l'archive à la racine du workspace
           echo "Creating docker_images.tar.gz archive..."
-          # Crée l'archive dans le workspace, pas dans docker_images/
-          tar -czf docker_images.tar.gz -C docker_images .
+          tar -czf $GITHUB_WORKSPACE/docker_images.tar.gz -C docker_images .
 
+          # Vérification
           echo "CI workspace content:"
-          ls -lah
+          ls -lah $GITHUB_WORKSPACE
           echo "docker_images directory content:"
-          ls -lah docker_images
+          ls -lah $GITHUB_WORKSPACE/docker_images
 
   test_frontend:
     runs-on: ubuntu-latest

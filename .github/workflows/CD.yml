@@ -20,9 +20,10 @@ jobs:
       # --- Verify archive exists locally ---
       - name: Verify docker_images.tar.gz exists
         run: |
+          cd $GITHUB_WORKSPACE
           echo "Listing CI workspace files..."
-          ls -lah ./docker_images.tar.gz
-          if [ ! -f ./docker_images.tar.gz ]; then
+          ls -lah docker_images.tar.gz
+          if [ ! -f docker_images.tar.gz ]; then
             echo "ERROR: docker_images.tar.gz missing!"
             exit 1
           fi
@@ -34,7 +35,7 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
-          source: "docker_images.tar.gz,docker-compose.yml,init.sql"
+          source: "$GITHUB_WORKSPACE/docker_images.tar.gz,$GITHUB_WORKSPACE/docker-compose.yml,$GITHUB_WORKSPACE/init.sql"
           target: "~/cityflow/"
           rm: false    # <-- garder le tar sur la VM
 
@@ -84,7 +85,7 @@ jobs:
             docker-compose down --volumes --remove-orphans || true
             docker rm -f $(docker ps -aq) || true
 
-            # Free common ports if in use (update ports according to docker-compose)
+            # Free common ports if in use
             for PORT in 1883 8080 5432; do
               if lsof -i :$PORT; then
                 echo "Port $PORT is in use, freeing it..."

@@ -17,28 +17,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --- Build & archive images ---
-      - name: Build Docker images
+      - name: Archive Docker images
         run: |
           mkdir -p docker_images
           SERVICES=("src/services/ingestion" "src/frontend" "src/iot-simulator")
-
           for SERVICE in "${SERVICES[@]}"; do
             IMAGE_NAME=$(basename $SERVICE)
             echo "Building $IMAGE_NAME..."
             docker build -t $IMAGE_NAME:latest $SERVICE
             docker save $IMAGE_NAME:latest > docker_images/$IMAGE_NAME.tar
           done
-
-          echo "Creating archive..."
           tar -czf docker_images.tar.gz docker_images
+          echo "Archive created."
 
-          echo "Workspace content:"
-          ls -lah
-
-
-      # --- Copy files to VM ---
-      - name: Copy deployment files
+      - name: Copy files to VM
         uses: appleboy/scp-action@v0.1.5
         with:
           host: ${{ secrets.VM_HOST }}
@@ -47,7 +39,6 @@ jobs:
           source: "docker_images.tar.gz,docker-compose.yml,init.sql"
           target: "~/cityflow/"
 
-      # --- Deploy on VM ---
       - name: Deploy on VM
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -60,15 +51,12 @@ jobs:
             echo "Loading Docker images..."
             mkdir -p docker_images
             tar xzf docker_images.tar.gz -C docker_images
-
             for IMAGE in docker_images/*.tar; do
               docker load -i $IMAGE
             done
-
             rm -rf docker_images docker_images.tar.gz
 
-            echo "Generating .env..."
-
+            echo "Generating .env file..."
             cat <<EOF > .env
             MQTT_BROKER=${{ secrets.MQTT_BROKER }}
             MQTT_PORT=${{ secrets.MQTT_PORT }}
@@ -80,9 +68,8 @@ jobs:
             DB_NAME=${{ secrets.DB_NAME }}
             EOF
 
-            echo "Restarting stack..."
-
+            echo "Starting Docker stack..."
             docker-compose down
             docker-compose up -d
 
-            echo "Deployment complete"
+            echo "Deployment completed successfully."

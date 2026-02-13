@@ -37,6 +37,22 @@ CREATE TABLE sensor_data (
 );
 ```
 
+## Création de la table processed_data
+
+```SQL
+CREATE EXTENSION IF NOT EXISTS timescaledb;
+
+CREATE TABLE processed_data (
+    time TIMESTAMPTZ NOT NULL,
+    device_id TEXT,
+    data JSONB
+);
+
+SELECT create_hypertable('processed_data', 'time', if_not_exists => TRUE);
+
+CREATE INDEX IF NOT EXISTS idx_processed_device_time ON processed_data (device_id, time DESC);
+```
+
 ## Vider la table sensor_data
 
 `TRUNCATE TABLE sensor_data;`

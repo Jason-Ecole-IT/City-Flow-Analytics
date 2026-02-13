@@ -1,47 +1,52 @@
-name: CD - Deploy Docker Images to VM (Single Archive)
+name: CD - Deploy to VM
 
-# Déclenche uniquement après un workflow CI réussi sur la branche main
 on:
   workflow_run:
     workflows: ["CI - Build & Test All Components"]
-    types:
-      - completed
+    types: [completed]
 
 jobs:
   deploy:
-    # Ne s'exécute que si le workflow CI a réussi
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+
     runs-on: self-hosted
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build Docker images and archive
+      # --- Build & archive images ---
+      - name: Build Docker images
         run: |
           mkdir -p docker_images
           SERVICES=("src/services/ingestion" "src/frontend" "src/iot-simulator")
+
           for SERVICE in "${SERVICES[@]}"; do
             IMAGE_NAME=$(basename $SERVICE)
             echo "Building $IMAGE_NAME..."
             docker build -t $IMAGE_NAME:latest $SERVICE
             docker save -o docker_images/$IMAGE_NAME.tar $IMAGE_NAME:latest
           done
+
           tar czf docker_images.tar.gz -C docker_images .
 
-      - name: Fix permissions for archive
-        run: chmod 777 docker_images.tar.gz
-
-      - name: Copy Docker images archive to VM
+      # --- Copy files to VM ---
+      - name: Copy deployment files
         uses: appleboy/scp-action@v0.1.5
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
-          source: docker_images.tar.gz
+          source: |
+            docker_images.tar.gz
+            docker-compose.yml
+            init.sql
           target: ~/cityflow/
 
-      - name: Load Docker images, generate .env and deploy
+      # --- Deploy on VM ---
+      - name: Deploy on VM
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VM_HOST }}
@@ -49,25 +54,33 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
             cd ~/cityflow
+
+            echo "Loading Docker images..."
             mkdir -p docker_images
             tar xzf docker_images.tar.gz -C docker_images
+
             for IMAGE in docker_images/*.tar; do
               docker load -i $IMAGE
             done
+
             rm -rf docker_images docker_images.tar.gz
 
-            # --- Génération du .env à partir des secrets GitHub ---
+            echo "Generating .env..."
+
             cat <<EOF > .env
             MQTT_BROKER=${{ secrets.MQTT_BROKER }}
             MQTT_PORT=${{ secrets.MQTT_PORT }}
 
-            DB_HOST=${{ secrets.DB_HOST }}
+            DB_HOST=timescaledb
             DB_PORT=${{ secrets.DB_PORT }}
             DB_USER=${{ secrets.DB_USER }}
             DB_PASS=${{ secrets.DB_PASS }}
             DB_NAME=${{ secrets.DB_NAME }}
             EOF
 
-            # --- Déploiement avec docker-compose ---
+            echo "Restarting stack..."
+
             docker-compose down
             docker-compose up -d
+
+            echo "Deployment complete"

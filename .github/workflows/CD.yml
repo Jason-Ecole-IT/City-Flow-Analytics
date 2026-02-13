@@ -70,23 +70,27 @@ jobs:
             mkdir -p docker_images
             tar xzf docker_images.tar.gz -C docker_images
 
-            if [ ! "$(ls -A docker_images)" ]; then
+            # --- Correct glob handling ---
+            shopt -s nullglob
+            TAR_FILES=(docker_images/*.tar)
+            if [ ${#TAR_FILES[@]} -eq 0 ]; then
               echo "ERROR: No .tar files found in docker_images!"
               exit 1
             fi
 
-            for IMAGE in docker_images/*.tar; do
+            for IMAGE in "${TAR_FILES[@]}"; do
               echo "Loading Docker image $IMAGE..."
-              docker load -i $IMAGE
+              docker load -i "$IMAGE"
             done
 
+            # Cleanup
             rm -rf docker_images docker_images.tar.gz
 
             echo "Generating .env file from secrets..."
             cat <<EOF > .env
             MQTT_BROKER=${{ secrets.MQTT_BROKER }}
             MQTT_PORT=${{ secrets.MQTT_PORT }}
-            
+
             DB_HOST=timescaledb
             DB_PORT=${{ secrets.DB_PORT }}
             DB_USER=${{ secrets.DB_USER }}
